@@ -28,9 +28,17 @@ export function getDbConfig(env: string): PoolConfig {
     );
   }
 
+  // Validate port number if provided
+  const portNumber = port ? parseInt(port, 10) : 5432;
+  if (port && (isNaN(portNumber) || portNumber < 1 || portNumber > 65535)) {
+    throw new Error(
+      `Invalid port number in ${prefix}_DB_PORT: "${port}". Port must be between 1 and 65535`
+    );
+  }
+
   return {
     host,
-    port: port ? parseInt(port, 10) : 5432,
+    port: portNumber,
     database,
     user,
     password: password || "",

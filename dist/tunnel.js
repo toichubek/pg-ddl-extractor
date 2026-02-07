@@ -127,9 +127,17 @@ function getSshConfig(env) {
         return null; // No SSH — direct connection
     const dbHost = process.env[`${prefix}_DB_HOST`] || "127.0.0.1";
     const dbPort = parseInt(process.env[`${prefix}_DB_PORT`] || "5432", 10);
+    const sshPort = parseInt(process.env[`${prefix}_SSH_PORT`] || "22", 10);
+    // Validate port numbers
+    if (isNaN(dbPort) || dbPort < 1 || dbPort > 65535) {
+        throw new Error(`Invalid database port in ${prefix}_DB_PORT: "${process.env[`${prefix}_DB_PORT`]}". Port must be between 1 and 65535`);
+    }
+    if (isNaN(sshPort) || sshPort < 1 || sshPort > 65535) {
+        throw new Error(`Invalid SSH port in ${prefix}_SSH_PORT: "${process.env[`${prefix}_SSH_PORT`]}". Port must be between 1 and 65535`);
+    }
     return {
         sshHost,
-        sshPort: parseInt(process.env[`${prefix}_SSH_PORT`] || "22", 10),
+        sshPort,
         sshUser: process.env[`${prefix}_SSH_USER`] || "",
         sshPassword: process.env[`${prefix}_SSH_PASSWORD`],
         sshKeyPath: process.env[`${prefix}_SSH_KEY_PATH`],

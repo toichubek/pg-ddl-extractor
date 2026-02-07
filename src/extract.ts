@@ -87,6 +87,15 @@ async function main(): Promise<void> {
       console.error("❌ When using CLI flags, --database and --user are required");
       process.exit(1);
     }
+
+    // Validate port number
+    if (options.port) {
+      const port = parseInt(options.port, 10);
+      if (isNaN(port) || port < 1 || port > 65535) {
+        console.error(`❌ Invalid port number: "${options.port}". Port must be between 1 and 65535`);
+        process.exit(1);
+      }
+    }
   }
 
   if (sshConfig) {
