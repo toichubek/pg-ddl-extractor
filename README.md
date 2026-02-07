@@ -151,6 +151,24 @@ Generated documentation includes:
 - Views and functions listing
 - Optional Mermaid ERD diagram
 
+## Snapshot Comparison
+
+Compare schema snapshots between Git commits or tags:
+
+```bash
+# Compare between two commits
+pg-ddl-snapshot-diff --from abc1234 --to def5678
+
+# Compare between tags
+pg-ddl-snapshot-diff --from v1.0.0 --to v2.0.0
+
+# Compare specific environment
+pg-ddl-snapshot-diff --from HEAD~5 --to HEAD --env dev
+
+# Export as Markdown report
+pg-ddl-snapshot-diff --from main~10 --to main --output snapshot-report.md
+```
+
 ## Schema Changelog
 
 Generate a changelog from Git history of extracted SQL files:
