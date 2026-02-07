@@ -1,6 +1,6 @@
 {
   "name": "@toichubek/pg-ddl-extractor",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Extract PostgreSQL DDL into organized folder structure for Git versioning with diff and migration tools",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
