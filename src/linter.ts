@@ -177,7 +177,7 @@ export class SchemaLinter {
         rule: "duplicate-index",
         severity: "warning",
         object: row.index_name,
-        message: `Index ${row.index_name} on ${row.table_name} may be a duplicate (columns: ${row.columns.join(", ")})`,
+        message: `Index ${row.index_name} on ${row.table_name} may be a duplicate (columns: ${Array.isArray(row.columns) ? row.columns.join(", ") : row.columns})`,
       });
     }
     this.logRule("duplicate-index", rows.length);
