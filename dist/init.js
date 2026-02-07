@@ -36,6 +36,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 const commander_1 = require("commander");
+const pkg = require("../package.json");
 const ENV_TEMPLATE = `# PostgreSQL DDL Extractor Configuration
 # ──────────────────────────────────────
 
@@ -95,7 +96,7 @@ function parseArgs() {
     commander_1.program
         .name("pg-ddl-init")
         .description("Initialize a new pg-ddl-extractor project with config files")
-        .version("1.0.0")
+        .version(pkg.version)
         .option("--dir <path>", "Project directory (default: current directory)")
         .option("--force", "Overwrite existing files")
         .parse(process.argv);

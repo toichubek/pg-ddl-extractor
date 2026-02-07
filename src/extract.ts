@@ -1,5 +1,6 @@
 import * as path from "path";
 import * as dotenv from "dotenv";
+const pkg = require("../package.json");
 import { Client } from "pg";
 import { program } from "commander";
 import { getDbConfig } from "./config";
@@ -43,7 +44,7 @@ function parseArgs(): CliOptions {
   program
     .name("pg-ddl-extract")
     .description("Extract PostgreSQL DDL into organized folder structure")
-    .version("1.0.0")
+    .version(pkg.version)
     .option("--env <environment>", "Environment name (e.g. dev, stage, prod)", "dev")
     .option("--host <host>", "Database host")
     .option("--port <port>", "Database port")
@@ -273,6 +274,10 @@ async function main(): Promise<void> {
       if (options.withData) {
         const dataTables = options.withData.split(",").map((t) => t.trim());
         const maxRows = options.maxRows ? parseInt(options.maxRows, 10) : 10000;
+        if (isNaN(maxRows) || maxRows < 1 || maxRows > 1000000) {
+          console.error(`❌ Invalid --max-rows: "${options.maxRows}". Must be between 1 and 1,000,000`);
+          process.exit(1);
+        }
         const dataExtractor = new DataExtractor(client);
         await dataExtractor.extractData({
           tables: dataTables,

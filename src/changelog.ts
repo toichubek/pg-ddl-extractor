@@ -2,6 +2,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { program } from "commander";
 import { execFileSync } from "child_process";
+const pkg = require("../package.json");
 
 interface ChangelogEntry {
   date: string;
@@ -194,7 +195,7 @@ function parseArgs(): CliOptions {
   program
     .name("pg-ddl-changelog")
     .description("Generate schema changelog from Git history")
-    .version("1.0.0")
+    .version(pkg.version)
     .option("--sql-dir <path>", "Path to SQL directory")
     .option("--env <environment>", "Environment filter (dev, prod)")
     .option("--limit <number>", "Max number of commits to show", "20")

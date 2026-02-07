@@ -3,6 +3,7 @@ import * as path from "path";
 import * as dotenv from "dotenv";
 import { program } from "commander";
 import { Client } from "pg";
+const pkg = require("../package.json");
 import { getDbConfig } from "./config";
 import { getSshConfig, createSshTunnel, TunnelResult } from "./tunnel";
 import {
@@ -45,7 +46,7 @@ function parseArgs(): CliOptions {
   program
     .name("pg-ddl-migrate")
     .description("Generate migration script from dev to prod schema")
-    .version("1.0.0")
+    .version(pkg.version)
     .option("--sql-dir <path>", "Path to SQL directory (default: ../../sql)")
     .option("--dev <path>", "Path to dev schema directory")
     .option("--prod <path>", "Path to prod schema directory")

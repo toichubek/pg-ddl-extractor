@@ -35,6 +35,7 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 const path = __importStar(require("path"));
 const dotenv = __importStar(require("dotenv"));
+const pkg = require("../package.json");
 const pg_1 = require("pg");
 const commander_1 = require("commander");
 const config_1 = require("./config");
@@ -51,7 +52,7 @@ function parseArgs() {
     commander_1.program
         .name("pg-ddl-extract")
         .description("Extract PostgreSQL DDL into organized folder structure")
-        .version("1.0.0")
+        .version(pkg.version)
         .option("--env <environment>", "Environment name (e.g. dev, stage, prod)", "dev")
         .option("--host <host>", "Database host")
         .option("--port <port>", "Database port")
@@ -253,6 +254,10 @@ async function main() {
             if (options.withData) {
                 const dataTables = options.withData.split(",").map((t) => t.trim());
                 const maxRows = options.maxRows ? parseInt(options.maxRows, 10) : 10000;
+                if (isNaN(maxRows) || maxRows < 1 || maxRows > 1000000) {
+                    console.error(`❌ Invalid --max-rows: "${options.maxRows}". Must be between 1 and 1,000,000`);
+                    process.exit(1);
+                }
                 const dataExtractor = new data_extractor_1.DataExtractor(client);
                 await dataExtractor.extractData({
                     tables: dataTables,

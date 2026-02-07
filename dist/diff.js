@@ -37,6 +37,7 @@ const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 const dotenv = __importStar(require("dotenv"));
 const commander_1 = require("commander");
+const pkg = require("../package.json");
 const compare_1 = require("./compare");
 // ─── Load .env ────────────────────────────────────────────────────
 dotenv.config();
@@ -44,7 +45,7 @@ function parseArgs() {
     commander_1.program
         .name("pg-ddl-diff")
         .description("Compare dev and prod PostgreSQL schemas")
-        .version("1.0.0")
+        .version(pkg.version)
         .option("--report", "Generate markdown and HTML reports")
         .option("--side-by-side", "Generate side-by-side HTML diff report")
         .option("--sql-dir <path>", "Path to SQL directory (default: ../../sql)")

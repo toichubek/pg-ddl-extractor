@@ -37,6 +37,7 @@ const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 const dotenv = __importStar(require("dotenv"));
 const commander_1 = require("commander");
+const pkg = require("../package.json");
 dotenv.config();
 function searchFiles(dir, pattern, category, ignoreCase) {
     const results = [];
@@ -77,7 +78,7 @@ function parseArgs() {
     commander_1.program
         .name("pg-ddl-search")
         .description("Search across extracted SQL files")
-        .version("1.0.0")
+        .version(pkg.version)
         .argument("<pattern>", "Search pattern (regex supported)")
         .option("--sql-dir <path>", "Path to SQL directory")
         .option("--env <environment>", "Environment to search (e.g. dev, stage, prod)", "dev")

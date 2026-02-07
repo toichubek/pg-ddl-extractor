@@ -38,6 +38,7 @@ const path = __importStar(require("path"));
 const dotenv = __importStar(require("dotenv"));
 const commander_1 = require("commander");
 const pg_1 = require("pg");
+const pkg = require("../package.json");
 const config_1 = require("./config");
 const tunnel_1 = require("./tunnel");
 const migration_generator_1 = require("./migration-generator");
@@ -49,7 +50,7 @@ function parseArgs() {
     commander_1.program
         .name("pg-ddl-migrate")
         .description("Generate migration script from dev to prod schema")
-        .version("1.0.0")
+        .version(pkg.version)
         .option("--sql-dir <path>", "Path to SQL directory (default: ../../sql)")
         .option("--dev <path>", "Path to dev schema directory")
         .option("--prod <path>", "Path to prod schema directory")

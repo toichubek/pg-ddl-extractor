@@ -1,6 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import { program } from "commander";
+const pkg = require("../package.json");
 
 interface CliOptions {
   dir?: string;
@@ -70,7 +71,7 @@ function parseArgs(): CliOptions {
   program
     .name("pg-ddl-init")
     .description("Initialize a new pg-ddl-extractor project with config files")
-    .version("1.0.0")
+    .version(pkg.version)
     .option("--dir <path>", "Project directory (default: current directory)")
     .option("--force", "Overwrite existing files")
     .parse(process.argv);

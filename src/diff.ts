@@ -2,6 +2,7 @@ import * as fs from "fs";
 import * as path from "path";
 import * as dotenv from "dotenv";
 import { program } from "commander";
+const pkg = require("../package.json");
 import {
   compareDdl,
   compareDdlDirs,
@@ -30,7 +31,7 @@ function parseArgs(): CliOptions {
   program
     .name("pg-ddl-diff")
     .description("Compare dev and prod PostgreSQL schemas")
-    .version("1.0.0")
+    .version(pkg.version)
     .option("--report", "Generate markdown and HTML reports")
     .option("--side-by-side", "Generate side-by-side HTML diff report")
     .option("--sql-dir <path>", "Path to SQL directory (default: ../../sql)")

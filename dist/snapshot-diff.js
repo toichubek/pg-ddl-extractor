@@ -37,6 +37,7 @@ const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 const commander_1 = require("commander");
 const child_process_1 = require("child_process");
+const pkg = require("../package.json");
 function getGitDiff(sqlDir, fromRef, toRef) {
     const results = [];
     try {
@@ -152,7 +153,7 @@ function parseArgs() {
     commander_1.program
         .name("pg-ddl-snapshot-diff")
         .description("Compare schema snapshots between Git commits or tags")
-        .version("1.0.0")
+        .version(pkg.version)
         .requiredOption("--from <ref>", "Git ref to compare from (commit hash, tag, or branch)")
         .requiredOption("--to <ref>", "Git ref to compare to (commit hash, tag, or branch)")
         .option("--sql-dir <path>", "Path to SQL directory")

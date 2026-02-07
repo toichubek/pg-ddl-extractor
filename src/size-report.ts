@@ -3,6 +3,7 @@ import * as path from "path";
 import * as dotenv from "dotenv";
 import { Client } from "pg";
 import { program } from "commander";
+const pkg = require("../package.json");
 import { getDbConfig } from "./config";
 import { getSshConfig, createSshTunnel, TunnelResult } from "./tunnel";
 
@@ -180,7 +181,7 @@ function parseArgs(): CliOptions {
   program
     .name("pg-ddl-size")
     .description("Generate detailed schema size report")
-    .version("1.0.0")
+    .version(pkg.version)
     .option("--env <environment>", "Environment name (e.g. dev, stage, prod)", "dev")
     .option("--host <host>", "Database host")
     .option("--port <port>", "Database port")

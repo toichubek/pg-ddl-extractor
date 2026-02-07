@@ -2,6 +2,7 @@ import * as path from "path";
 import * as dotenv from "dotenv";
 import { Client } from "pg";
 import { program } from "commander";
+const pkg = require("../package.json");
 import { getDbConfig } from "./config";
 import { SqlFileWriter } from "./writer";
 import { DdlExtractor, ExtractionFilters } from "./extractor";
@@ -26,7 +27,7 @@ function parseArgs(): CliOptions {
   program
     .name("pg-ddl-watch")
     .description("Watch PostgreSQL schema for changes and auto-extract DDL")
-    .version("1.0.0")
+    .version(pkg.version)
     .option("--env <environment>", "Environment name (e.g. dev, stage, prod)", "dev")
     .option("--host <host>", "Database host")
     .option("--port <port>", "Database port")

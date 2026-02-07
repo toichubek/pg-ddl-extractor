@@ -37,6 +37,7 @@ const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 const commander_1 = require("commander");
 const child_process_1 = require("child_process");
+const pkg = require("../package.json");
 function getGitLog(sqlDir, limit) {
     const entries = [];
     try {
@@ -186,7 +187,7 @@ function parseArgs() {
     commander_1.program
         .name("pg-ddl-changelog")
         .description("Generate schema changelog from Git history")
-        .version("1.0.0")
+        .version(pkg.version)
         .option("--sql-dir <path>", "Path to SQL directory")
         .option("--env <environment>", "Environment filter (dev, prod)")
         .option("--limit <number>", "Max number of commits to show", "20")

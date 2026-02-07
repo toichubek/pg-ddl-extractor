@@ -37,6 +37,7 @@ const fs = __importStar(require("fs"));
 const dotenv = __importStar(require("dotenv"));
 const pg_1 = require("pg");
 const commander_1 = require("commander");
+const pkg = require("../package.json");
 const config_1 = require("./config");
 const tunnel_1 = require("./tunnel");
 dotenv.config();
@@ -215,7 +216,7 @@ function parseArgs() {
     commander_1.program
         .name("pg-ddl-deps")
         .description("Show schema dependency graph and creation order")
-        .version("1.0.0")
+        .version(pkg.version)
         .option("--env <environment>", "Environment name (e.g. dev, stage, prod)", "dev")
         .option("--host <host>", "Database host")
         .option("--port <port>", "Database port")

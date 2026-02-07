@@ -2,6 +2,7 @@ import * as fs from "fs";
 import * as path from "path";
 import * as dotenv from "dotenv";
 import { program } from "commander";
+const pkg = require("../package.json");
 
 dotenv.config();
 
@@ -71,7 +72,7 @@ function parseArgs(): { pattern: string; options: CliOptions } {
   program
     .name("pg-ddl-search")
     .description("Search across extracted SQL files")
-    .version("1.0.0")
+    .version(pkg.version)
     .argument("<pattern>", "Search pattern (regex supported)")
     .option("--sql-dir <path>", "Path to SQL directory")
     .option("--env <environment>", "Environment to search (e.g. dev, stage, prod)", "dev")

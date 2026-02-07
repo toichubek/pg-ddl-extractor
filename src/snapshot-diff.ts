@@ -2,6 +2,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { program } from "commander";
 import { execFileSync } from "child_process";
+const pkg = require("../package.json");
 
 interface CliOptions {
   sqlDir?: string;
@@ -160,7 +161,7 @@ function parseArgs(): CliOptions {
   program
     .name("pg-ddl-snapshot-diff")
     .description("Compare schema snapshots between Git commits or tags")
-    .version("1.0.0")
+    .version(pkg.version)
     .requiredOption("--from <ref>", "Git ref to compare from (commit hash, tag, or branch)")
     .requiredOption("--to <ref>", "Git ref to compare to (commit hash, tag, or branch)")
     .option("--sql-dir <path>", "Path to SQL directory")
