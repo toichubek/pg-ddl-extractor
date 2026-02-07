@@ -105,10 +105,12 @@ async function main() {
         console.log("📝 Generating documentation...\n");
         const generator = new docs_generator_1.DocsGenerator(client);
         const doc = await generator.generate();
-        // Determine output directory
+        // Determine output directory (default: sql/docs/)
         const outputDir = options.output
             ? path.resolve(options.output)
-            : path.resolve(process.cwd(), "docs");
+            : process.env.SQL_OUTPUT_DIR
+                ? path.resolve(process.env.SQL_OUTPUT_DIR, "docs")
+                : path.resolve(__dirname, "..", "..", "sql", "docs");
         fs.mkdirSync(outputDir, { recursive: true });
         // Generate markdown
         const markdown = (0, docs_generator_1.formatDocsMarkdown)(doc);

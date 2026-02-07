@@ -135,17 +135,17 @@ Watch mode:
 
 ## Schema Documentation
 
-Auto-generate Markdown documentation from your database schema:
+Auto-generate Markdown documentation from your database schema (saved to `sql/docs/` by default):
 
 ```bash
-# Generate docs for DEV
+# Generate docs for DEV (output: sql/docs/)
 pg-ddl-docs --env dev
 
 # Generate docs with ERD diagram (Mermaid)
 pg-ddl-docs --env dev --diagram
 
 # Custom output directory
-pg-ddl-docs --env dev --output ./docs
+pg-ddl-docs --env dev --output ./my-docs
 
 # Direct connection
 pg-ddl-docs --host localhost --database mydb --user postgres --diagram

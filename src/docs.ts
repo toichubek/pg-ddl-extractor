@@ -98,10 +98,12 @@ async function main(): Promise<void> {
     const generator = new DocsGenerator(client);
     const doc = await generator.generate();
 
-    // Determine output directory
+    // Determine output directory (default: sql/docs/)
     const outputDir = options.output
       ? path.resolve(options.output)
-      : path.resolve(process.cwd(), "docs");
+      : process.env.SQL_OUTPUT_DIR
+        ? path.resolve(process.env.SQL_OUTPUT_DIR, "docs")
+        : path.resolve(__dirname, "..", "..", "sql", "docs");
 
     fs.mkdirSync(outputDir, { recursive: true });
 
