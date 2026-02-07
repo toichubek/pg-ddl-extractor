@@ -46,6 +46,7 @@ function parseArgs() {
         .description("Compare dev and prod PostgreSQL schemas")
         .version("1.0.0")
         .option("--report", "Generate markdown and HTML reports")
+        .option("--side-by-side", "Generate side-by-side HTML diff report")
         .option("--sql-dir <path>", "Path to SQL directory (default: ../../sql)")
         .option("--dev <path>", "Path to dev schema directory")
         .option("--prod <path>", "Path to prod schema directory")
@@ -104,17 +105,27 @@ function main() {
         // Always print to console
         console.log((0, compare_1.formatConsoleReport)(summary));
         // Optionally save reports (markdown + HTML)
-        if (options.report) {
+        if (options.report || options.sideBySide) {
             const reportDir = path.join(sqlRoot, "reports");
             fs.mkdirSync(reportDir, { recursive: true });
             const timestamp = new Date().toISOString().slice(0, 10);
-            const mdPath = path.join(reportDir, `diff_${timestamp}.md`);
-            fs.writeFileSync(mdPath, (0, compare_1.formatMarkdownReport)(summary), "utf-8");
-            const htmlPath = path.join(reportDir, `diff_${timestamp}.html`);
-            fs.writeFileSync(htmlPath, (0, compare_1.formatHtmlReport)(summary), "utf-8");
-            console.log(`\n📄 Markdown: ${mdPath}`);
-            console.log(`🌐 HTML:     ${htmlPath}`);
-            console.log(`\n   Open in browser: open ${htmlPath}`);
+            if (options.report) {
+                const mdPath = path.join(reportDir, `diff_${timestamp}.md`);
+                fs.writeFileSync(mdPath, (0, compare_1.formatMarkdownReport)(summary), "utf-8");
+                const htmlPath = path.join(reportDir, `diff_${timestamp}.html`);
+                fs.writeFileSync(htmlPath, (0, compare_1.formatHtmlReport)(summary), "utf-8");
+                console.log(`\n📄 Markdown: ${mdPath}`);
+                console.log(`🌐 HTML:     ${htmlPath}`);
+            }
+            if (options.sideBySide) {
+                const sbsPath = path.join(reportDir, `diff_${timestamp}_side-by-side.html`);
+                fs.writeFileSync(sbsPath, (0, compare_1.formatSideBySideHtml)(summary), "utf-8");
+                console.log(`\n📊 Side-by-side: ${sbsPath}`);
+                console.log(`\n   Open in browser: open ${sbsPath}`);
+            }
+            else {
+                console.log(`\n   Open in browser: open ${path.join(reportDir, `diff_${timestamp}.html`)}`);
+            }
         }
     }
     catch (err) {

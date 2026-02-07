@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.printPreCheckReport = exports.PreMigrationChecker = exports.mergeWithCliOptions = exports.loadRcConfig = exports.formatDocsMermaid = exports.formatDocsMarkdown = exports.DocsGenerator = exports.DataExtractor = exports.printLintReport = exports.SchemaLinter = exports.interactiveReview = exports.printDryRun = exports.printMigrationSummary = exports.formatRollbackSql = exports.formatMigrationSql = exports.saveRollback = exports.saveMigration = exports.generateRollback = exports.generateMigration = exports.formatMultiEnvReport = exports.formatHtmlReport = exports.formatMarkdownReport = exports.formatConsoleReport = exports.compareMultiEnv = exports.compareDdlDirs = exports.compareDdl = exports.createSshTunnel = exports.getSshConfig = exports.getDbConfig = exports.DdlExtractor = exports.SqlFileWriter = void 0;
+exports.parallelQuery = exports.withPoolClient = exports.createPool = exports.Spinner = exports.ProgressBar = exports.getObjectHashes = exports.SnapshotManager = exports.MigrationTracker = exports.printPreCheckReport = exports.PreMigrationChecker = exports.mergeWithCliOptions = exports.loadRcConfig = exports.formatDocsMermaid = exports.formatDocsMarkdown = exports.DocsGenerator = exports.JsonExporter = exports.DataExtractor = exports.printLintReport = exports.SchemaLinter = exports.interactiveReview = exports.printDryRun = exports.printMigrationSummary = exports.formatRollbackSql = exports.formatMigrationSql = exports.saveRollback = exports.saveMigration = exports.generateRollback = exports.generateMigration = exports.formatMultiEnvReport = exports.formatSideBySideHtml = exports.formatHtmlReport = exports.formatMarkdownReport = exports.formatConsoleReport = exports.compareMultiEnv = exports.compareDdlDirs = exports.compareDdl = exports.createSshTunnel = exports.getSshConfig = exports.getDbConfig = exports.DdlExtractor = exports.SqlFileWriter = void 0;
 // Public API exports
 var writer_1 = require("./writer");
 Object.defineProperty(exports, "SqlFileWriter", { enumerable: true, get: function () { return writer_1.SqlFileWriter; } });
@@ -18,6 +18,7 @@ Object.defineProperty(exports, "compareMultiEnv", { enumerable: true, get: funct
 Object.defineProperty(exports, "formatConsoleReport", { enumerable: true, get: function () { return compare_1.formatConsoleReport; } });
 Object.defineProperty(exports, "formatMarkdownReport", { enumerable: true, get: function () { return compare_1.formatMarkdownReport; } });
 Object.defineProperty(exports, "formatHtmlReport", { enumerable: true, get: function () { return compare_1.formatHtmlReport; } });
+Object.defineProperty(exports, "formatSideBySideHtml", { enumerable: true, get: function () { return compare_1.formatSideBySideHtml; } });
 Object.defineProperty(exports, "formatMultiEnvReport", { enumerable: true, get: function () { return compare_1.formatMultiEnvReport; } });
 var migration_generator_1 = require("./migration-generator");
 Object.defineProperty(exports, "generateMigration", { enumerable: true, get: function () { return migration_generator_1.generateMigration; } });
@@ -34,6 +35,8 @@ Object.defineProperty(exports, "SchemaLinter", { enumerable: true, get: function
 Object.defineProperty(exports, "printLintReport", { enumerable: true, get: function () { return linter_1.printLintReport; } });
 var data_extractor_1 = require("./data-extractor");
 Object.defineProperty(exports, "DataExtractor", { enumerable: true, get: function () { return data_extractor_1.DataExtractor; } });
+var json_exporter_1 = require("./json-exporter");
+Object.defineProperty(exports, "JsonExporter", { enumerable: true, get: function () { return json_exporter_1.JsonExporter; } });
 var docs_generator_1 = require("./docs-generator");
 Object.defineProperty(exports, "DocsGenerator", { enumerable: true, get: function () { return docs_generator_1.DocsGenerator; } });
 Object.defineProperty(exports, "formatDocsMarkdown", { enumerable: true, get: function () { return docs_generator_1.formatDocsMarkdown; } });
@@ -44,3 +47,15 @@ Object.defineProperty(exports, "mergeWithCliOptions", { enumerable: true, get: f
 var pre_check_1 = require("./pre-check");
 Object.defineProperty(exports, "PreMigrationChecker", { enumerable: true, get: function () { return pre_check_1.PreMigrationChecker; } });
 Object.defineProperty(exports, "printPreCheckReport", { enumerable: true, get: function () { return pre_check_1.printPreCheckReport; } });
+var migration_tracker_1 = require("./migration-tracker");
+Object.defineProperty(exports, "MigrationTracker", { enumerable: true, get: function () { return migration_tracker_1.MigrationTracker; } });
+var snapshot_1 = require("./snapshot");
+Object.defineProperty(exports, "SnapshotManager", { enumerable: true, get: function () { return snapshot_1.SnapshotManager; } });
+Object.defineProperty(exports, "getObjectHashes", { enumerable: true, get: function () { return snapshot_1.getObjectHashes; } });
+var progress_1 = require("./progress");
+Object.defineProperty(exports, "ProgressBar", { enumerable: true, get: function () { return progress_1.ProgressBar; } });
+Object.defineProperty(exports, "Spinner", { enumerable: true, get: function () { return progress_1.Spinner; } });
+var pool_1 = require("./pool");
+Object.defineProperty(exports, "createPool", { enumerable: true, get: function () { return pool_1.createPool; } });
+Object.defineProperty(exports, "withPoolClient", { enumerable: true, get: function () { return pool_1.withPoolClient; } });
+Object.defineProperty(exports, "parallelQuery", { enumerable: true, get: function () { return pool_1.parallelQuery; } });

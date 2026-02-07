@@ -41,8 +41,10 @@ const config_1 = require("./config");
 const writer_1 = require("./writer");
 const extractor_1 = require("./extractor");
 const data_extractor_1 = require("./data-extractor");
+const json_exporter_1 = require("./json-exporter");
 const tunnel_1 = require("./tunnel");
 const rc_config_1 = require("./rc-config");
+const snapshot_1 = require("./snapshot");
 // ─── Load .env ────────────────────────────────────────────────────
 dotenv.config();
 function parseArgs() {
@@ -65,11 +67,22 @@ function parseArgs() {
         // Data extraction options
         .option("--with-data <tables>", "Extract data from specified tables (comma-separated)")
         .option("--max-rows <number>", "Max rows to extract per table (default: 10000)")
+        // Format options
+        .option("--format <format>", "Output format: sql (default) or json")
+        // Incremental
+        .option("--incremental", "Only re-extract objects that changed since last run")
+        // Progress
+        .option("--progress", "Show progress bar during extraction")
         .parse(process.argv);
     const options = commander_1.program.opts();
     // Validate env if provided
     if (options.env && !["dev", "prod"].includes(options.env)) {
         console.error(`❌ Invalid env: "${options.env}". Use --env dev or --env prod`);
+        process.exit(1);
+    }
+    // Validate format if provided
+    if (options.format && !["sql", "json"].includes(options.format)) {
+        console.error(`❌ Invalid format: "${options.format}". Use --format sql or --format json`);
         process.exit(1);
     }
     return options;
@@ -179,39 +192,98 @@ async function main() {
             if (filters.excludeTables)
                 console.log(`   Exclude tables:  ${filters.excludeTables.join(", ")}`);
         }
-        // Extract DDL
-        const writer = new writer_1.SqlFileWriter(outputDir);
-        const extractor = new extractor_1.DdlExtractor(client, writer, filters);
-        await extractor.extractAll();
-        // Extract data if requested
-        if (options.withData) {
-            const dataTables = options.withData.split(",").map((t) => t.trim());
-            const maxRows = options.maxRows ? parseInt(options.maxRows, 10) : 10000;
-            const dataExtractor = new data_extractor_1.DataExtractor(client);
-            await dataExtractor.extractData({
-                tables: dataTables,
-                maxRows,
-                outputDir,
-            });
+        // Incremental snapshot check
+        if (options.incremental) {
+            const snapshot = new snapshot_1.SnapshotManager(outputDir);
+            const lastTs = snapshot.getLastTimestamp();
+            if (lastTs) {
+                console.log(`\n📸 Incremental mode: last snapshot ${lastTs}`);
+            }
+            else {
+                console.log("\n📸 Incremental mode: no previous snapshot (full extraction)");
+            }
+            const currentHashes = await (0, snapshot_1.getObjectHashes)(client);
+            const changes = snapshot.getChangeSummary(currentHashes);
+            if (changes.added.length === 0 && changes.modified.length === 0 && changes.removed.length === 0) {
+                console.log("  🎉 No changes detected since last snapshot!\n");
+                snapshot.save(pgConfig.database || "unknown", currentHashes);
+                return;
+            }
+            console.log(`  🆕 Added:     ${changes.added.length}`);
+            console.log(`  🔄 Modified:  ${changes.modified.length}`);
+            console.log(`  🗑️  Removed:   ${changes.removed.length}`);
+            console.log(`  ✅ Unchanged: ${changes.unchanged.length}`);
+            // Do full extraction (writer handles change detection at file level)
+            // but save the snapshot after
+            const format = options.format || "sql";
+            if (format === "json") {
+                const jsonExporter = new json_exporter_1.JsonExporter(client, filters);
+                const filepath = await jsonExporter.exportToFile(outputDir);
+                console.log(`\n  📁 ${filepath}`);
+            }
+            else {
+                const writer = new writer_1.SqlFileWriter(outputDir);
+                const extractor = new extractor_1.DdlExtractor(client, writer, filters);
+                await extractor.extractAll();
+                const summary = writer.getSummary();
+                const total = Object.values(summary).reduce((a, b) => a + b, 0);
+                const stats = writer.getChangeStats();
+                console.log("\n═══════════════════════════════════════════════════");
+                console.log(`  ✅ Incremental extraction: ${total} objects`);
+                console.log("═══════════════════════════════════════════════════");
+                console.log(`    🆕 Created:   ${stats.created}`);
+                console.log(`    🔄 Updated:   ${stats.updated}`);
+                console.log(`    ✅ Unchanged: ${stats.unchanged}`);
+            }
+            snapshot.save(pgConfig.database || "unknown", currentHashes);
+            console.log("  📸 Snapshot saved\n");
+            return;
         }
-        // Summary
-        const summary = writer.getSummary();
-        const total = Object.values(summary).reduce((a, b) => a + b, 0);
-        const stats = writer.getChangeStats();
-        console.log("\n═══════════════════════════════════════════════════");
-        console.log(`  ✅ Done! Extracted ${total} objects into sql/${env}/`);
-        console.log("═══════════════════════════════════════════════════");
-        console.log(`\n  📁 ${outputDir}`);
-        console.log(`  📄 Full dump: sql/${env}/_full_dump.sql`);
-        console.log("\n  Change Summary:");
-        console.log(`    🆕 Created:   ${stats.created}`);
-        console.log(`    🔄 Updated:   ${stats.updated}`);
-        console.log(`    ✅ Unchanged: ${stats.unchanged}`);
-        if (stats.created === 0 && stats.updated === 0) {
-            console.log(`\n  🎉 No changes - database structure is unchanged!\n`);
+        const format = options.format || "sql";
+        if (format === "json") {
+            // JSON export mode
+            const jsonExporter = new json_exporter_1.JsonExporter(client, filters);
+            const filepath = await jsonExporter.exportToFile(outputDir);
+            console.log("\n═══════════════════════════════════════════════════");
+            console.log(`  ✅ Done! Exported schema as JSON`);
+            console.log("═══════════════════════════════════════════════════");
+            console.log(`\n  📁 ${filepath}\n`);
         }
         else {
-            console.log(`\n  Ready to commit to Git! 🎉\n`);
+            // SQL export mode (default)
+            const writer = new writer_1.SqlFileWriter(outputDir);
+            const extractor = new extractor_1.DdlExtractor(client, writer, filters, !!options.progress);
+            await extractor.extractAll();
+            // Extract data if requested
+            if (options.withData) {
+                const dataTables = options.withData.split(",").map((t) => t.trim());
+                const maxRows = options.maxRows ? parseInt(options.maxRows, 10) : 10000;
+                const dataExtractor = new data_extractor_1.DataExtractor(client);
+                await dataExtractor.extractData({
+                    tables: dataTables,
+                    maxRows,
+                    outputDir,
+                });
+            }
+            // Summary
+            const summary = writer.getSummary();
+            const total = Object.values(summary).reduce((a, b) => a + b, 0);
+            const stats = writer.getChangeStats();
+            console.log("\n═══════════════════════════════════════════════════");
+            console.log(`  ✅ Done! Extracted ${total} objects into sql/${env}/`);
+            console.log("═══════════════════════════════════════════════════");
+            console.log(`\n  📁 ${outputDir}`);
+            console.log(`  📄 Full dump: sql/${env}/_full_dump.sql`);
+            console.log("\n  Change Summary:");
+            console.log(`    🆕 Created:   ${stats.created}`);
+            console.log(`    🔄 Updated:   ${stats.updated}`);
+            console.log(`    ✅ Unchanged: ${stats.unchanged}`);
+            if (stats.created === 0 && stats.updated === 0) {
+                console.log(`\n  🎉 No changes - database structure is unchanged!\n`);
+            }
+            else {
+                console.log(`\n  Ready to commit to Git! 🎉\n`);
+            }
         }
     }
     catch (err) {

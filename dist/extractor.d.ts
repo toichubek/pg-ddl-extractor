@@ -11,7 +11,8 @@ export declare class DdlExtractor {
     private writer;
     private allDdl;
     private filters;
-    constructor(client: Client, writer: SqlFileWriter, filters?: ExtractionFilters);
+    private showProgress;
+    constructor(client: Client, writer: SqlFileWriter, filters?: ExtractionFilters, showProgress?: boolean);
     /** Run full extraction */
     extractAll(): Promise<void>;
     private extractSchemas;

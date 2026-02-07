@@ -1,29 +1,47 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DdlExtractor = void 0;
+const progress_1 = require("./progress");
 const EXCLUDED_SCHEMAS = `('pg_catalog', 'information_schema', 'pg_toast')`;
 class DdlExtractor {
     client;
     writer;
     allDdl = [];
     filters;
-    constructor(client, writer, filters = {}) {
+    showProgress;
+    constructor(client, writer, filters = {}, showProgress = false) {
         this.client = client;
         this.writer = writer;
         this.filters = filters;
+        this.showProgress = showProgress;
     }
     /** Run full extraction */
     async extractAll() {
         console.log("\n📦 Extracting database structure...\n");
-        await this.extractSchemas();
-        await this.extractTypes();
-        await this.extractSequences();
-        await this.extractTables();
-        await this.extractViews();
-        await this.extractMaterializedViews();
-        await this.extractFunctions();
-        await this.extractTriggers();
-        await this.extractIndexes();
+        const steps = [
+            { name: "schemas", fn: () => this.extractSchemas() },
+            { name: "types", fn: () => this.extractTypes() },
+            { name: "sequences", fn: () => this.extractSequences() },
+            { name: "tables", fn: () => this.extractTables() },
+            { name: "views", fn: () => this.extractViews() },
+            { name: "materialized_views", fn: () => this.extractMaterializedViews() },
+            { name: "functions", fn: () => this.extractFunctions() },
+            { name: "triggers", fn: () => this.extractTriggers() },
+            { name: "indexes", fn: () => this.extractIndexes() },
+        ];
+        if (this.showProgress) {
+            const bar = new progress_1.ProgressBar(steps.length, "Extracting...");
+            for (const step of steps) {
+                await step.fn();
+                bar.tick(step.name);
+            }
+            bar.complete("Extraction complete");
+        }
+        else {
+            for (const step of steps) {
+                await step.fn();
+            }
+        }
         // Write combined dump
         this.writer.writeFull(this.allDdl.join("\n\n"));
     }

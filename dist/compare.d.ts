@@ -34,5 +34,6 @@ export declare function compareMultiEnv(sqlRoot: string, envNames: string[]): Mu
 export declare function formatMultiEnvReport(result: MultiEnvResult): string;
 export declare function formatConsoleReport(summary: DiffSummary): string;
 export declare function formatMarkdownReport(summary: DiffSummary): string;
+export declare function formatSideBySideHtml(summary: DiffSummary): string;
 export declare function formatHtmlReport(summary: DiffSummary): string;
 export {};

@@ -39,6 +39,7 @@ exports.compareMultiEnv = compareMultiEnv;
 exports.formatMultiEnvReport = formatMultiEnvReport;
 exports.formatConsoleReport = formatConsoleReport;
 exports.formatMarkdownReport = formatMarkdownReport;
+exports.formatSideBySideHtml = formatSideBySideHtml;
 exports.formatHtmlReport = formatHtmlReport;
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
@@ -531,6 +532,179 @@ function escapeHtml(str) {
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;");
+}
+function formatSideBySideHtml(summary) {
+    const timestamp = new Date().toISOString().slice(0, 19);
+    const modified = summary.items.filter((i) => i.status === "modified");
+    const onlyDev = summary.items.filter((i) => i.status === "only_dev");
+    const onlyProd = summary.items.filter((i) => i.status === "only_prod");
+    function readAndStrip(filepath) {
+        const content = fs.readFileSync(filepath, "utf-8");
+        const lines = content.split("\n");
+        const start = lines.findIndex((l) => !l.startsWith("-- ") && l.trim() !== "");
+        return start >= 0 ? lines.slice(start) : lines;
+    }
+    // Build side-by-side data for modified items
+    const sideBySideItems = modified.map((item) => {
+        const devLines = item.devFile ? readAndStrip(item.devFile) : [];
+        const prodLines = item.prodFile ? readAndStrip(item.prodFile) : [];
+        return { ...item, devLines, prodLines };
+    });
+    const modifiedHtml = sideBySideItems
+        .map((item, idx) => `
+    <div class="sbs-item">
+      <div class="sbs-header" onclick="toggleSbs(${idx})">
+        <span class="arrow" id="sbs-arrow-${idx}">▼</span>
+        <span class="category-badge">${escapeHtml(item.category)}</span>
+        <span class="sbs-name">${escapeHtml(item.object)}</span>
+      </div>
+      <div class="sbs-body" id="sbs-body-${idx}">
+        <div class="sbs-container">
+          <div class="sbs-pane">
+            <div class="sbs-pane-header dev-header">DEV</div>
+            <div class="sbs-code">${item.devLines
+        .map((line, ln) => `<div class="sbs-line"><span class="ln">${ln + 1}</span>${escapeHtml(line)}</div>`)
+        .join("")}</div>
+          </div>
+          <div class="sbs-pane">
+            <div class="sbs-pane-header prod-header">PROD</div>
+            <div class="sbs-code">${item.prodLines
+        .map((line, ln) => `<div class="sbs-line"><span class="ln">${ln + 1}</span>${escapeHtml(line)}</div>`)
+        .join("")}</div>
+          </div>
+        </div>
+      </div>
+    </div>`)
+        .join("");
+    const onlyDevHtml = onlyDev.length > 0
+        ? `<div class="sbs-section">
+      <h2 class="section-title green-title">🟢 Only in DEV (${onlyDev.length})</h2>
+      <table class="obj-table"><thead><tr><th>Category</th><th>Object</th></tr></thead><tbody>
+      ${onlyDev.map((i) => `<tr><td><span class="category-badge">${escapeHtml(i.category)}</span></td><td>${escapeHtml(i.object)}</td></tr>`).join("")}
+      </tbody></table></div>`
+        : "";
+    const onlyProdHtml = onlyProd.length > 0
+        ? `<div class="sbs-section">
+      <h2 class="section-title red-title">🔴 Only in PROD (${onlyProd.length})</h2>
+      <table class="obj-table"><thead><tr><th>Category</th><th>Object</th></tr></thead><tbody>
+      ${onlyProd.map((i) => `<tr><td><span class="category-badge">${escapeHtml(i.category)}</span></td><td>${escapeHtml(i.object)}</td></tr>`).join("")}
+      </tbody></table></div>`
+        : "";
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DDL Side-by-Side Diff — DEV vs PROD</title>
+<style>
+  :root {
+    --bg: #0d1117; --surface: #161b22; --border: #30363d;
+    --text: #e6edf3; --text-muted: #8b949e;
+    --green: #3fb950; --green-bg: #0d2818;
+    --red: #f85149; --red-bg: #2d1214;
+    --yellow: #d29922; --yellow-bg: #2e2416;
+    --blue: #58a6ff;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace;
+    background: var(--bg); color: var(--text); padding: 2rem; line-height: 1.5;
+  }
+  .header { border-bottom: 1px solid var(--border); padding-bottom: 1.5rem; margin-bottom: 2rem; }
+  .header h1 { font-size: 1.5rem; font-weight: 600; margin-bottom: 0.25rem; }
+  .header .meta { color: var(--text-muted); font-size: 0.85rem; }
+
+  .stats { display: flex; gap: 2rem; margin-bottom: 2rem; flex-wrap: wrap; }
+  .stat { font-size: 0.9rem; }
+  .stat .num { font-weight: 700; font-size: 1.3rem; }
+  .stat.green .num { color: var(--green); }
+  .stat.red .num { color: var(--red); }
+  .stat.yellow .num { color: var(--yellow); }
+  .stat.blue .num { color: var(--blue); }
+
+  .sbs-section { margin-bottom: 2rem; }
+  .section-title {
+    font-size: 1.1rem; font-weight: 600; padding: 0.75rem 1rem;
+    border-radius: 8px 8px 0 0; border: 1px solid var(--border);
+  }
+  .green-title { background: var(--green-bg); }
+  .red-title { background: var(--red-bg); }
+  .yellow-title { background: var(--yellow-bg); }
+
+  .obj-table { width: 100%; border-collapse: collapse; border: 1px solid var(--border); border-top: none; }
+  .obj-table th { text-align: left; padding: 0.5rem 1rem; background: var(--surface); color: var(--text-muted); font-size: 0.8rem; border-bottom: 1px solid var(--border); }
+  .obj-table td { padding: 0.5rem 1rem; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+  .category-badge { display: inline-block; padding: 0.1rem 0.5rem; border-radius: 4px; font-size: 0.75rem; background: var(--surface); border: 1px solid var(--border); color: var(--text-muted); }
+
+  .sbs-item { margin-bottom: 1rem; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .sbs-header {
+    display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1rem;
+    background: var(--yellow-bg); cursor: pointer; user-select: none;
+  }
+  .sbs-header .arrow { font-size: 0.75rem; transition: transform 0.2s; }
+  .sbs-name { font-weight: 600; }
+  .sbs-body.collapsed { display: none; }
+
+  .sbs-container { display: grid; grid-template-columns: 1fr 1fr; }
+  .sbs-pane { overflow: hidden; }
+  .sbs-pane-header {
+    padding: 0.4rem 1rem; font-size: 0.8rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .dev-header { background: var(--green-bg); color: var(--green); border-right: 1px solid var(--border); }
+  .prod-header { background: var(--red-bg); color: var(--red); }
+
+  .sbs-code {
+    font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.78rem;
+    overflow-x: auto; max-height: 500px; overflow-y: auto;
+    background: #0d1117; border-top: 1px solid var(--border);
+  }
+  .sbs-pane:first-child .sbs-code { border-right: 1px solid var(--border); }
+
+  .sbs-line { white-space: pre; padding: 1px 0.5rem; min-height: 1.3em; }
+  .sbs-line:hover { background: rgba(255,255,255,0.03); }
+  .ln { display: inline-block; width: 3em; text-align: right; margin-right: 1em; color: var(--text-muted); user-select: none; font-size: 0.7rem; }
+
+  .sync-banner { text-align: center; padding: 3rem; color: var(--green); font-size: 1.2rem; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>📊 Side-by-Side DDL Diff — DEV vs PROD</h1>
+  <div class="meta">Generated: ${timestamp}</div>
+</div>
+
+<div class="stats">
+  <div class="stat blue"><div class="num">${summary.total_dev}</div>DEV objects</div>
+  <div class="stat blue"><div class="num">${summary.total_prod}</div>PROD objects</div>
+  <div class="stat green"><div class="num">${summary.identical}</div>Identical</div>
+  <div class="stat yellow"><div class="num">${summary.modified}</div>Modified</div>
+  <div class="stat green"><div class="num">${summary.only_dev}</div>Only DEV</div>
+  <div class="stat red"><div class="num">${summary.only_prod}</div>Only PROD</div>
+</div>
+
+${summary.only_dev + summary.only_prod + summary.modified === 0 ? '<div class="sync-banner">🎉 DEV and PROD are perfectly in sync!</div>' : ""}
+
+${onlyDevHtml}
+${onlyProdHtml}
+
+${modified.length > 0 ? `<div class="sbs-section"><h2 class="section-title yellow-title">🔄 Modified (${modified.length})</h2>${modifiedHtml}</div>` : ""}
+
+<script>
+function toggleSbs(idx) {
+  const body = document.getElementById('sbs-body-' + idx);
+  const arrow = document.getElementById('sbs-arrow-' + idx);
+  if (body.classList.contains('collapsed')) {
+    body.classList.remove('collapsed');
+    arrow.textContent = '▼';
+  } else {
+    body.classList.add('collapsed');
+    arrow.textContent = '▶';
+  }
+}
+</script>
+</body>
+</html>`;
 }
 function formatHtmlReport(summary) {
     const timestamp = new Date().toISOString().slice(0, 19);
