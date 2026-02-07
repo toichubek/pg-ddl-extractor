@@ -42,6 +42,7 @@ const writer_1 = require("./writer");
 const extractor_1 = require("./extractor");
 const data_extractor_1 = require("./data-extractor");
 const tunnel_1 = require("./tunnel");
+const rc_config_1 = require("./rc-config");
 // ─── Load .env ────────────────────────────────────────────────────
 dotenv.config();
 function parseArgs() {
@@ -75,7 +76,12 @@ function parseArgs() {
 }
 // ─── Main ─────────────────────────────────────────────────────────
 async function main() {
-    const options = parseArgs();
+    const cliOptions = parseArgs();
+    // Load config file and merge with CLI options
+    const rcConfig = (0, rc_config_1.loadRcConfig)();
+    const options = rcConfig
+        ? (0, rc_config_1.mergeWithCliOptions)(rcConfig, cliOptions)
+        : cliOptions;
     const env = options.env || "dev";
     // Determine output directory
     const outputDir = options.output

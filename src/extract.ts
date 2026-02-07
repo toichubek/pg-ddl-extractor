@@ -7,6 +7,7 @@ import { SqlFileWriter } from "./writer";
 import { DdlExtractor, ExtractionFilters } from "./extractor";
 import { DataExtractor } from "./data-extractor";
 import { getSshConfig, createSshTunnel, TunnelResult } from "./tunnel";
+import { loadRcConfig, mergeWithCliOptions } from "./rc-config";
 
 // ─── Load .env ────────────────────────────────────────────────────
 dotenv.config();
@@ -65,7 +66,14 @@ function parseArgs(): CliOptions {
 
 // ─── Main ─────────────────────────────────────────────────────────
 async function main(): Promise<void> {
-  const options = parseArgs();
+  const cliOptions = parseArgs();
+
+  // Load config file and merge with CLI options
+  const rcConfig = loadRcConfig();
+  const options = rcConfig
+    ? (mergeWithCliOptions(rcConfig, cliOptions) as CliOptions)
+    : cliOptions;
+
   const env = options.env || "dev";
 
   // Determine output directory

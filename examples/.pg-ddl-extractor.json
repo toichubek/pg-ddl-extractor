@@ -1,0 +1,14 @@
+{
+  "defaults": {
+    "env": "dev",
+    "output": "./sql"
+  },
+  "extract": {
+    "excludeSchema": ["test", "temp"],
+    "excludeTables": ["public.logs", "public.cache"],
+    "maxRows": 5000
+  },
+  "migration": {
+    "withRollback": true
+  }
+}

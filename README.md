@@ -478,6 +478,35 @@ Example diff output:
       PROD [5]: email varchar(150) NOT NULL
 ```
 
+## Configuration File
+
+Create `.pg-ddl-extractor.json` in your project root to set defaults:
+
+```json
+{
+  "defaults": {
+    "env": "dev",
+    "output": "./sql"
+  },
+  "extract": {
+    "excludeSchema": ["test", "temp"],
+    "excludeTables": ["public.logs", "public.cache"],
+    "maxRows": 5000
+  },
+  "migration": {
+    "withRollback": true
+  }
+}
+```
+
+Supported config files (searched in order):
+- `.pg-ddl-extractor.json`
+- `.pg-ddl-extractor.yml`
+- `.pg-ddl-extractor.yaml`
+- `pg-ddl-extractor.config.json`
+
+CLI flags always override config file settings.
+
 ## Git Workflow
 
 ```bash
