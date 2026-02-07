@@ -16,6 +16,7 @@ export {
 } from "./migration-generator";
 
 export { SchemaLinter, printLintReport } from "./linter";
+export { DataExtractor } from "./data-extractor";
 
 // Re-export types
 export type { Client } from "pg";

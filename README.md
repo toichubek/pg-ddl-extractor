@@ -169,6 +169,8 @@ All commands support CLI flags to override environment variables:
 - `--tables <tables>` - Include only specific tables (comma-separated, format: schema.table)
 - `--exclude-schema <schemas>` - Exclude specific schemas (comma-separated)
 - `--exclude-tables <tables>` - Exclude specific tables (comma-separated, format: schema.table)
+- `--with-data <tables>` - Extract data as INSERT statements from specified tables (comma-separated)
+- `--max-rows <number>` - Max rows to extract per table - default: `10000`
 - `--help` - Display help
 - `--version` - Display version
 
@@ -220,6 +222,12 @@ pg-ddl-extract --env dev --exclude-tables public.logs,public.cache
 
 # Combine filters - extract public schema but exclude logs table
 pg-ddl-extract --env dev --schema public --exclude-tables public.logs
+
+# Extract DDL + data from reference tables
+pg-ddl-extract --env dev --with-data countries,currencies,statuses
+
+# Extract data with row limit
+pg-ddl-extract --env dev --with-data public.users --max-rows 100
 
 # Compare DEV vs PROD
 pg-ddl-diff

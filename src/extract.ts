@@ -5,6 +5,7 @@ import { program } from "commander";
 import { getDbConfig } from "./config";
 import { SqlFileWriter } from "./writer";
 import { DdlExtractor, ExtractionFilters } from "./extractor";
+import { DataExtractor } from "./data-extractor";
 import { getSshConfig, createSshTunnel, TunnelResult } from "./tunnel";
 
 // ─── Load .env ────────────────────────────────────────────────────
@@ -24,6 +25,9 @@ interface CliOptions {
   tables?: string;
   excludeSchema?: string;
   excludeTables?: string;
+  // Data extraction
+  withData?: string;
+  maxRows?: string;
 }
 
 function parseArgs(): CliOptions {
@@ -43,6 +47,9 @@ function parseArgs(): CliOptions {
     .option("--tables <tables>", "Include only specific tables (comma-separated, format: schema.table)")
     .option("--exclude-schema <schemas>", "Exclude specific schemas (comma-separated)")
     .option("--exclude-tables <tables>", "Exclude specific tables (comma-separated, format: schema.table)")
+    // Data extraction options
+    .option("--with-data <tables>", "Extract data from specified tables (comma-separated)")
+    .option("--max-rows <number>", "Max rows to extract per table (default: 10000)")
     .parse(process.argv);
 
   const options = program.opts<CliOptions>();
@@ -170,10 +177,22 @@ async function main(): Promise<void> {
       if (filters.excludeTables) console.log(`   Exclude tables:  ${filters.excludeTables.join(", ")}`);
     }
 
-    // Extract
+    // Extract DDL
     const writer = new SqlFileWriter(outputDir);
     const extractor = new DdlExtractor(client, writer, filters);
     await extractor.extractAll();
+
+    // Extract data if requested
+    if (options.withData) {
+      const dataTables = options.withData.split(",").map((t) => t.trim());
+      const maxRows = options.maxRows ? parseInt(options.maxRows, 10) : 10000;
+      const dataExtractor = new DataExtractor(client);
+      await dataExtractor.extractData({
+        tables: dataTables,
+        maxRows,
+        outputDir,
+      });
+    }
 
     // Summary
     const summary = writer.getSummary();

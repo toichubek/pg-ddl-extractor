@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.printLintReport = exports.SchemaLinter = exports.printDryRun = exports.printMigrationSummary = exports.formatRollbackSql = exports.formatMigrationSql = exports.saveRollback = exports.saveMigration = exports.generateRollback = exports.generateMigration = exports.formatHtmlReport = exports.formatMarkdownReport = exports.formatConsoleReport = exports.compareDdl = exports.createSshTunnel = exports.getSshConfig = exports.getDbConfig = exports.DdlExtractor = exports.SqlFileWriter = void 0;
+exports.DataExtractor = exports.printLintReport = exports.SchemaLinter = exports.printDryRun = exports.printMigrationSummary = exports.formatRollbackSql = exports.formatMigrationSql = exports.saveRollback = exports.saveMigration = exports.generateRollback = exports.generateMigration = exports.formatHtmlReport = exports.formatMarkdownReport = exports.formatConsoleReport = exports.compareDdl = exports.createSshTunnel = exports.getSshConfig = exports.getDbConfig = exports.DdlExtractor = exports.SqlFileWriter = void 0;
 // Public API exports
 var writer_1 = require("./writer");
 Object.defineProperty(exports, "SqlFileWriter", { enumerable: true, get: function () { return writer_1.SqlFileWriter; } });
@@ -28,3 +28,5 @@ Object.defineProperty(exports, "printDryRun", { enumerable: true, get: function 
 var linter_1 = require("./linter");
 Object.defineProperty(exports, "SchemaLinter", { enumerable: true, get: function () { return linter_1.SchemaLinter; } });
 Object.defineProperty(exports, "printLintReport", { enumerable: true, get: function () { return linter_1.printLintReport; } });
+var data_extractor_1 = require("./data-extractor");
+Object.defineProperty(exports, "DataExtractor", { enumerable: true, get: function () { return data_extractor_1.DataExtractor; } });

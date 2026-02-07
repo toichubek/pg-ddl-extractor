@@ -40,6 +40,7 @@ const commander_1 = require("commander");
 const config_1 = require("./config");
 const writer_1 = require("./writer");
 const extractor_1 = require("./extractor");
+const data_extractor_1 = require("./data-extractor");
 const tunnel_1 = require("./tunnel");
 // ─── Load .env ────────────────────────────────────────────────────
 dotenv.config();
@@ -60,6 +61,9 @@ function parseArgs() {
         .option("--tables <tables>", "Include only specific tables (comma-separated, format: schema.table)")
         .option("--exclude-schema <schemas>", "Exclude specific schemas (comma-separated)")
         .option("--exclude-tables <tables>", "Exclude specific tables (comma-separated, format: schema.table)")
+        // Data extraction options
+        .option("--with-data <tables>", "Extract data from specified tables (comma-separated)")
+        .option("--max-rows <number>", "Max rows to extract per table (default: 10000)")
         .parse(process.argv);
     const options = commander_1.program.opts();
     // Validate env if provided
@@ -169,10 +173,21 @@ async function main() {
             if (filters.excludeTables)
                 console.log(`   Exclude tables:  ${filters.excludeTables.join(", ")}`);
         }
-        // Extract
+        // Extract DDL
         const writer = new writer_1.SqlFileWriter(outputDir);
         const extractor = new extractor_1.DdlExtractor(client, writer, filters);
         await extractor.extractAll();
+        // Extract data if requested
+        if (options.withData) {
+            const dataTables = options.withData.split(",").map((t) => t.trim());
+            const maxRows = options.maxRows ? parseInt(options.maxRows, 10) : 10000;
+            const dataExtractor = new data_extractor_1.DataExtractor(client);
+            await dataExtractor.extractData({
+                tables: dataTables,
+                maxRows,
+                outputDir,
+            });
+        }
         // Summary
         const summary = writer.getSummary();
         const total = Object.values(summary).reduce((a, b) => a + b, 0);

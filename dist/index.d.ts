@@ -5,5 +5,6 @@ export { getSshConfig, createSshTunnel } from "./tunnel";
 export { compareDdl, formatConsoleReport, formatMarkdownReport, formatHtmlReport } from "./compare";
 export { generateMigration, generateRollback, saveMigration, saveRollback, formatMigrationSql, formatRollbackSql, printMigrationSummary, printDryRun, } from "./migration-generator";
 export { SchemaLinter, printLintReport } from "./linter";
+export { DataExtractor } from "./data-extractor";
 export type { Client } from "pg";
 export type { LintResult, LintIssue, LintSeverity } from "./linter";
