@@ -15,5 +15,8 @@ export {
   printDryRun,
 } from "./migration-generator";
 
+export { SchemaLinter, printLintReport } from "./linter";
+
 // Re-export types
 export type { Client } from "pg";
+export type { LintResult, LintIssue, LintSeverity } from "./linter";

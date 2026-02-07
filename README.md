@@ -74,6 +74,34 @@ myproject/
 | **Indexes**        | Non-constraint indexes only                        |
 | **Schemas**        | `CREATE SCHEMA IF NOT EXISTS`                      |
 
+## Schema Linting
+
+Check your database schema for common issues and best practices:
+
+```bash
+# Lint DEV database
+pg-ddl-lint --env dev
+
+# Lint PROD database
+pg-ddl-lint --env prod
+
+# Lint with direct connection
+pg-ddl-lint --host localhost --database mydb --user postgres
+```
+
+### Lint Rules
+
+| Rule | Severity | Description |
+|------|----------|-------------|
+| `no-primary-key` | Error | Tables without PRIMARY KEY |
+| `missing-fk-index` | Warning | Foreign key columns without index (slow JOINs) |
+| `duplicate-index` | Warning | Indexes with identical column sets |
+| `unused-index` | Info | Indexes that have never been scanned |
+| `no-table-comment` | Info | Tables without COMMENT |
+| `unowned-sequence` | Info | Sequences not owned by any column |
+
+Exit code is `1` if any errors are found (useful for CI/CD).
+
 ## Setup
 
 ```bash
