@@ -4,9 +4,7 @@ updates:
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
+      interval: "yearly"
     open-pull-requests-limit: 10
     versioning-strategy: increase
     commit-message:
@@ -32,9 +30,7 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
+      interval: "yearly"
     commit-message:
       prefix: "chore(ci)"
     labels:
