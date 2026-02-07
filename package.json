@@ -8,7 +8,8 @@
     "pg-ddl-extract": "dist/cli/extract.js",
     "pg-ddl-diff": "dist/cli/diff.js",
     "pg-ddl-migrate": "dist/cli/migrate.js",
-    "pg-ddl-lint": "dist/cli/lint.js"
+    "pg-ddl-lint": "dist/cli/lint.js",
+    "pg-ddl-watch": "dist/cli/watch.js"
   },
   "files": [
     "dist",
@@ -29,6 +30,9 @@
     "schema:lint": "ts-node src/lint.ts",
     "schema:lint:dev": "ts-node src/lint.ts --env dev",
     "schema:lint:prod": "ts-node src/lint.ts --env prod",
+    "watch": "ts-node src/watch.ts",
+    "watch:dev": "ts-node src/watch.ts --env dev",
+    "watch:prod": "ts-node src/watch.ts --env prod",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
     "format": "prettier --write \"src/**/*.ts\"",

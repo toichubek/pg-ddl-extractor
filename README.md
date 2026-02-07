@@ -102,6 +102,28 @@ pg-ddl-lint --host localhost --database mydb --user postgres
 
 Exit code is `1` if any errors are found (useful for CI/CD).
 
+## Watch Mode
+
+Automatically re-extract DDL when schema changes are detected:
+
+```bash
+# Watch DEV database every 30 seconds (default)
+pg-ddl-watch --env dev
+
+# Custom poll interval (minimum 5 seconds)
+pg-ddl-watch --env dev --interval 60
+
+# Watch with direct connection
+pg-ddl-watch --host localhost --database mydb --user postgres --interval 15
+```
+
+Watch mode:
+- Performs an initial full extraction on startup
+- Polls the database for schema changes at the configured interval
+- Only re-extracts when actual changes are detected (using schema hash)
+- Shows periodic heartbeat messages every 10 checks
+- Press `Ctrl+C` to stop gracefully
+
 ## Setup
 
 ```bash
