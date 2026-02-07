@@ -7,6 +7,15 @@
 
 Extracts full database structure (DDL) from PostgreSQL and organizes it into a clean folder structure for Git version control.
 
+## Quick Start
+
+```bash
+npm install -g @toichubek/pg-ddl-extractor
+pg-ddl-init
+# Edit .env with your database credentials
+pg-ddl-extract --env dev
+```
+
 ## 🚀 Installation
 
 ### As npm package (recommended)

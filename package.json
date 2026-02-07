@@ -17,7 +17,8 @@
     "pg-ddl-validate": "dist/cli/validate.js",
     "pg-ddl-changelog": "dist/cli/changelog.js",
     "pg-ddl-snapshot-diff": "dist/cli/snapshot-diff.js",
-    "pg-ddl-size": "dist/cli/size-report.js"
+    "pg-ddl-size": "dist/cli/size-report.js",
+    "pg-ddl-init": "dist/cli/init.js"
   },
   "files": [
     "dist",
