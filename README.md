@@ -151,6 +151,27 @@ Generated documentation includes:
 - Views and functions listing
 - Optional Mermaid ERD diagram
 
+## Schema Dependencies
+
+Analyze foreign key dependencies and get safe table creation order:
+
+```bash
+# Show dependency graph
+pg-ddl-deps --env dev
+
+# Show topological creation order
+pg-ddl-deps --env dev --order
+
+# Export as Mermaid ERD
+pg-ddl-deps --env dev --mermaid --output deps.mmd
+
+# Export as Graphviz DOT
+pg-ddl-deps --env dev --dot --output deps.dot
+
+# With direct connection
+pg-ddl-deps --host localhost --database mydb --user postgres --order
+```
+
 ## Schema Search
 
 Search across extracted SQL files:
