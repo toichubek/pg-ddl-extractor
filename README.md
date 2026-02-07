@@ -95,6 +95,61 @@ PROD_DB_USER=readonly_user
 PROD_DB_PASSWORD=secret
 ```
 
+## Configuration
+
+### Environment Variables
+
+You can configure database connections using environment variables in a `.env` file or via your shell:
+
+```env
+# DEV database
+DEV_DB_HOST=localhost
+DEV_DB_PORT=5432
+DEV_DB_NAME=my_database
+DEV_DB_USER=postgres
+DEV_DB_PASSWORD=secret
+
+# PROD database
+PROD_DB_HOST=prod-server.example.com
+PROD_DB_PORT=5432
+PROD_DB_NAME=my_database
+PROD_DB_USER=readonly_user
+PROD_DB_PASSWORD=secret
+
+# Optional: Custom output directory
+SQL_OUTPUT_DIR=/path/to/sql
+```
+
+### CLI Flags
+
+All commands support CLI flags to override environment variables:
+
+**`pg-ddl-extract` Options:**
+- `--env <environment>` - Environment name (dev or prod) - default: `dev`
+- `--host <host>` - Database host
+- `--port <port>` - Database port - default: `5432`
+- `--database <database>` - Database name (required with --host)
+- `--user <user>` - Database user (required with --host)
+- `--password <password>` - Database password
+- `--output <path>` - Custom output directory path
+- `--help` - Display help
+- `--version` - Display version
+
+**`pg-ddl-diff` Options:**
+- `--report` - Generate markdown and HTML reports
+- `--sql-dir <path>` - Path to SQL directory - default: `./sql`
+- `--dev <path>` - Path to dev schema directory
+- `--prod <path>` - Path to prod schema directory
+- `--help` - Display help
+- `--version` - Display version
+
+**`pg-ddl-migrate` Options:**
+- `--sql-dir <path>` - Path to SQL directory - default: `./sql`
+- `--dev <path>` - Path to dev schema directory
+- `--prod <path>` - Path to prod schema directory
+- `--help` - Display help
+- `--version` - Display version
+
 ## Usage
 
 ### CLI Commands (after global install)
@@ -106,14 +161,39 @@ pg-ddl-extract --env dev
 # Extract PROD database → saves to ./sql/prod/
 pg-ddl-extract --env prod
 
+# Extract with direct connection (no .env file needed)
+pg-ddl-extract --host localhost --database mydb --user postgres --password secret
+
+# Extract to custom output directory
+pg-ddl-extract --env dev --output /custom/path
+
 # Compare DEV vs PROD
 pg-ddl-diff
 
 # Compare and save reports
 pg-ddl-diff --report
 
+# Compare with custom directories
+pg-ddl-diff --dev /path/to/dev --prod /path/to/prod
+
 # Generate migration plan
 pg-ddl-migrate
+
+# Generate migration with custom SQL directory
+pg-ddl-migrate --sql-dir /custom/sql
+```
+
+### Examples with Environment Variables
+
+```bash
+# Unix/Linux/Mac - Pass env vars inline
+DEV_DB_HOST=localhost DEV_DB_NAME=mydb DEV_DB_USER=postgres pg-ddl-extract --env dev
+
+# Windows (PowerShell)
+$env:DEV_DB_HOST="localhost"; $env:DEV_DB_NAME="mydb"; pg-ddl-extract --env dev
+
+# Windows (cmd)
+set DEV_DB_HOST=localhost && set DEV_DB_NAME=mydb && pg-ddl-extract --env dev
 ```
 
 ### Using npm scripts (local install or from source)

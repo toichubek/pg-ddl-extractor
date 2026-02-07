@@ -1,12 +1,41 @@
 import * as fs from "fs";
 import * as path from "path";
+import { program } from "commander";
 import { generateMigration, saveMigration, printMigrationSummary } from "./migration-generator";
+
+// ─── Parse CLI args ───────────────────────────────────────────────
+interface CliOptions {
+  sqlDir?: string;
+  dev?: string;
+  prod?: string;
+  output?: string;
+}
+
+function parseArgs(): CliOptions {
+  program
+    .name("pg-ddl-migrate")
+    .description("Generate migration script from dev to prod schema")
+    .version("1.0.0")
+    .option("--sql-dir <path>", "Path to SQL directory (default: ../../sql)")
+    .option("--dev <path>", "Path to dev schema directory")
+    .option("--prod <path>", "Path to prod schema directory")
+    .option("--output <path>", "Output directory for migration files")
+    .parse(process.argv);
+
+  return program.opts<CliOptions>();
+}
 
 // ─── Main ─────────────────────────────────────────────────────
 
 function main(): void {
-  // sql/ lives at ../../sql relative to this script (extract-db/src/)
-  const sqlRoot = path.resolve(__dirname, "..", "..", "sql");
+  const options = parseArgs();
+
+  // Determine SQL root directory
+  const sqlRoot = options.sqlDir
+    ? path.resolve(options.sqlDir)
+    : process.env.SQL_OUTPUT_DIR
+    ? path.resolve(process.env.SQL_OUTPUT_DIR)
+    : path.resolve(__dirname, "..", "..", "sql");
 
   if (!fs.existsSync(sqlRoot)) {
     console.error(`❌ sql/ folder not found at: ${sqlRoot}`);
@@ -14,8 +43,9 @@ function main(): void {
     process.exit(1);
   }
 
-  const devDir = path.join(sqlRoot, "dev");
-  const prodDir = path.join(sqlRoot, "prod");
+  // Determine dev and prod directories
+  const devDir = options.dev ? path.resolve(options.dev) : path.join(sqlRoot, "dev");
+  const prodDir = options.prod ? path.resolve(options.prod) : path.join(sqlRoot, "prod");
 
   if (!fs.existsSync(devDir)) {
     console.error("❌ sql/dev/ not found. Run: npm run extract:dev");

@@ -35,26 +35,37 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
+const commander_1 = require("commander");
 const compare_1 = require("./compare");
-// ─── Parse CLI args ───────────────────────────────────────────────
 function parseArgs() {
-    const args = process.argv.slice(2);
-    return {
-        report: args.includes("--report"),
-    };
+    commander_1.program
+        .name("pg-ddl-diff")
+        .description("Compare dev and prod PostgreSQL schemas")
+        .version("1.0.0")
+        .option("--report", "Generate markdown and HTML reports")
+        .option("--sql-dir <path>", "Path to SQL directory (default: ../../sql)")
+        .option("--dev <path>", "Path to dev schema directory")
+        .option("--prod <path>", "Path to prod schema directory")
+        .parse(process.argv);
+    return commander_1.program.opts();
 }
 // ─── Main ─────────────────────────────────────────────────────────
 function main() {
-    const { report } = parseArgs();
-    // sql/ lives at ../../sql relative to this script (extract-db/src/)
-    const sqlRoot = path.resolve(__dirname, "..", "..", "sql");
+    const options = parseArgs();
+    // Determine SQL root directory
+    const sqlRoot = options.sqlDir
+        ? path.resolve(options.sqlDir)
+        : process.env.SQL_OUTPUT_DIR
+            ? path.resolve(process.env.SQL_OUTPUT_DIR)
+            : path.resolve(__dirname, "..", "..", "sql");
     if (!fs.existsSync(sqlRoot)) {
         console.error(`❌ sql/ folder not found at: ${sqlRoot}`);
         console.error("   Run extract:dev and extract:prod first.");
         process.exit(1);
     }
-    const devDir = path.join(sqlRoot, "dev");
-    const prodDir = path.join(sqlRoot, "prod");
+    // Determine dev and prod directories
+    const devDir = options.dev ? path.resolve(options.dev) : path.join(sqlRoot, "dev");
+    const prodDir = options.prod ? path.resolve(options.prod) : path.join(sqlRoot, "prod");
     if (!fs.existsSync(devDir)) {
         console.error("❌ sql/dev/ not found. Run: npm run extract:dev");
         process.exit(1);
@@ -68,7 +79,7 @@ function main() {
         // Always print to console
         console.log((0, compare_1.formatConsoleReport)(summary));
         // Optionally save reports (markdown + HTML)
-        if (report) {
+        if (options.report) {
             const reportDir = path.join(sqlRoot, "reports");
             fs.mkdirSync(reportDir, { recursive: true });
             const timestamp = new Date().toISOString().slice(0, 10);

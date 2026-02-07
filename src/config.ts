@@ -15,7 +15,6 @@ export interface DbConfig {
 export function getDbConfig(env: string): PoolConfig {
   const prefix = env.toUpperCase(); // DEV or PROD
 
-  console.log({env:process.env})
   const host = process.env[`${prefix}_DB_HOST`];
   const port = process.env[`${prefix}_DB_PORT`];
   const database = process.env[`${prefix}_DB_NAME`];

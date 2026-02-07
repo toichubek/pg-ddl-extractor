@@ -1,6 +1,7 @@
 import * as path from "path";
 import * as dotenv from "dotenv";
 import { Client } from "pg";
+import { program } from "commander";
 import { getDbConfig } from "./config";
 import { SqlFileWriter } from "./writer";
 import { DdlExtractor } from "./extractor";
@@ -10,31 +11,52 @@ import { getSshConfig, createSshTunnel, TunnelResult } from "./tunnel";
 dotenv.config();
 
 // ─── Parse CLI args ───────────────────────────────────────────────
-function parseArgs(): { env: string } {
-  const args = process.argv.slice(2);
-  let env = "dev"; // default
+interface CliOptions {
+  env?: string;
+  host?: string;
+  port?: string;
+  database?: string;
+  user?: string;
+  password?: string;
+  output?: string;
+}
 
-  for (let i = 0; i < args.length; i++) {
-    if (args[i] === "--env" && args[i + 1]) {
-      env = args[i + 1].toLowerCase();
-      i++;
-    }
-  }
+function parseArgs(): CliOptions {
+  program
+    .name("pg-ddl-extract")
+    .description("Extract PostgreSQL DDL into organized folder structure")
+    .version("1.0.0")
+    .option("--env <environment>", "Environment (dev or prod)", "dev")
+    .option("--host <host>", "Database host")
+    .option("--port <port>", "Database port")
+    .option("--database <database>", "Database name")
+    .option("--user <user>", "Database user")
+    .option("--password <password>", "Database password")
+    .option("--output <path>", "Output directory path")
+    .parse(process.argv);
 
-  if (!["dev", "prod"].includes(env)) {
-    console.error(`❌ Invalid env: "${env}". Use --env dev or --env prod`);
+  const options = program.opts<CliOptions>();
+
+  // Validate env if provided
+  if (options.env && !["dev", "prod"].includes(options.env)) {
+    console.error(`❌ Invalid env: "${options.env}". Use --env dev or --env prod`);
     process.exit(1);
   }
 
-  return { env };
+  return options;
 }
 
 // ─── Main ─────────────────────────────────────────────────────────
 async function main(): Promise<void> {
-  const { env } = parseArgs();
-  // extract-db lives at /myproject/extract-db/
-  // sql folder lives at  /myproject/sql/
-  const outputDir = path.resolve(__dirname, "..", "..", "sql", env);
+  const options = parseArgs();
+  const env = options.env || "dev";
+
+  // Determine output directory
+  const outputDir = options.output
+    ? path.resolve(options.output)
+    : process.env.SQL_OUTPUT_DIR
+    ? path.resolve(process.env.SQL_OUTPUT_DIR, env)
+    : path.resolve(__dirname, "..", "..", "sql", env);
 
   console.log("═══════════════════════════════════════════════════");
   console.log(`  PostgreSQL DDL Extractor`);
@@ -45,7 +67,27 @@ async function main(): Promise<void> {
   // Check if SSH tunnel is needed
   const sshConfig = getSshConfig(env);
   let tunnel: TunnelResult | null = null;
-  let pgConfig = getDbConfig(env);
+
+  // Get DB config - use CLI options if provided, otherwise use env-based config
+  let pgConfig = options.host || options.database || options.user
+    ? {
+        host: options.host || "localhost",
+        port: options.port ? parseInt(options.port, 10) : 5432,
+        database: options.database!,
+        user: options.user!,
+        password: options.password || "",
+        connectionTimeoutMillis: 10000,
+        query_timeout: 30000,
+      }
+    : getDbConfig(env);
+
+  // Validate required fields if using CLI options
+  if (options.host || options.database || options.user) {
+    if (!options.database || !options.user) {
+      console.error("❌ When using CLI flags, --database and --user are required");
+      process.exit(1);
+    }
+  }
 
   if (sshConfig) {
     console.log(`\n🔒 SSH tunnel: ${sshConfig.sshUser}@${sshConfig.sshHost}:${sshConfig.sshPort}`);

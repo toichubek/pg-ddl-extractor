@@ -35,18 +35,37 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
+const commander_1 = require("commander");
 const migration_generator_1 = require("./migration-generator");
+function parseArgs() {
+    commander_1.program
+        .name("pg-ddl-migrate")
+        .description("Generate migration script from dev to prod schema")
+        .version("1.0.0")
+        .option("--sql-dir <path>", "Path to SQL directory (default: ../../sql)")
+        .option("--dev <path>", "Path to dev schema directory")
+        .option("--prod <path>", "Path to prod schema directory")
+        .option("--output <path>", "Output directory for migration files")
+        .parse(process.argv);
+    return commander_1.program.opts();
+}
 // ─── Main ─────────────────────────────────────────────────────
 function main() {
-    // sql/ lives at ../../sql relative to this script (extract-db/src/)
-    const sqlRoot = path.resolve(__dirname, "..", "..", "sql");
+    const options = parseArgs();
+    // Determine SQL root directory
+    const sqlRoot = options.sqlDir
+        ? path.resolve(options.sqlDir)
+        : process.env.SQL_OUTPUT_DIR
+            ? path.resolve(process.env.SQL_OUTPUT_DIR)
+            : path.resolve(__dirname, "..", "..", "sql");
     if (!fs.existsSync(sqlRoot)) {
         console.error(`❌ sql/ folder not found at: ${sqlRoot}`);
         console.error("   Run extract:dev and extract:prod first.");
         process.exit(1);
     }
-    const devDir = path.join(sqlRoot, "dev");
-    const prodDir = path.join(sqlRoot, "prod");
+    // Determine dev and prod directories
+    const devDir = options.dev ? path.resolve(options.dev) : path.join(sqlRoot, "dev");
+    const prodDir = options.prod ? path.resolve(options.prod) : path.join(sqlRoot, "prod");
     if (!fs.existsSync(devDir)) {
         console.error("❌ sql/dev/ not found. Run: npm run extract:dev");
         process.exit(1);
