@@ -36,9 +36,7 @@ function buildHeader(objectName: string, category: string): string {
 /** Strip header from content to get only DDL */
 function stripHeader(content: string): string {
   const lines = content.split("\n");
-  const start = lines.findIndex(
-    (l) => !l.startsWith("-- ") && l.trim() !== ""
-  );
+  const start = lines.findIndex((l) => !l.startsWith("-- ") && l.trim() !== "");
   return start >= 0 ? lines.slice(start).join("\n").trim() : content.trim();
 }
 

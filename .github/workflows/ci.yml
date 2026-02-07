@@ -84,10 +84,14 @@ jobs:
     - name: Install dependencies
       run: npm ci
 
-    - name: Check formatting
-      run: |
-        echo "✓ TypeScript compilation check passed"
-        npx tsc --noEmit
+    - name: Run ESLint
+      run: npm run lint
+
+    - name: Check Prettier formatting
+      run: npm run format:check
+
+    - name: Check TypeScript compilation
+      run: npx tsc --noEmit
 
   package:
     runs-on: ubuntu-latest

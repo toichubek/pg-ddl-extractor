@@ -205,9 +205,7 @@ function compareDdl(sqlRoot) {
         throw new Error(`DEV folder not found: ${devDir}`);
     if (!fs.existsSync(prodDir))
         throw new Error(`PROD folder not found: ${prodDir}`);
-    const allCategories = [
-        ...new Set([...getCategories(devDir), ...getCategories(prodDir)]),
-    ].sort();
+    const allCategories = [...new Set([...getCategories(devDir), ...getCategories(prodDir)])].sort();
     const items = [];
     let totalDev = 0;
     let totalProd = 0;
@@ -217,9 +215,7 @@ function compareDdl(sqlRoot) {
         const prodFiles = getSqlFiles(path.join(prodDir, category));
         totalDev += devFiles.size;
         totalProd += prodFiles.size;
-        const allObjects = [
-            ...new Set([...devFiles.keys(), ...prodFiles.keys()]),
-        ].sort();
+        const allObjects = [...new Set([...devFiles.keys(), ...prodFiles.keys()])].sort();
         for (const obj of allObjects) {
             const inDev = devFiles.has(obj);
             const inProd = prodFiles.has(obj);
@@ -773,7 +769,13 @@ ${modified.length > 0
             ? `<div class="diff-block">${item.diff
                 .slice(0, 50)
                 .map((d) => {
-                const cls = d.startsWith("- DEV") ? "dev" : d.startsWith("+ PROD") ? "prod" : d.trim() === "..." ? "sep" : "ctx";
+                const cls = d.startsWith("- DEV")
+                    ? "dev"
+                    : d.startsWith("+ PROD")
+                        ? "prod"
+                        : d.trim() === "..."
+                            ? "sep"
+                            : "ctx";
                 return `<div class="diff-line ${cls}">${escapeHtml(d)}</div>`;
             })
                 .join("")}${item.diff.length > 50 ? `<div class="diff-line" style="color:var(--text-muted)">... ${item.diff.length - 50} more lines</div>` : ""}</div>`

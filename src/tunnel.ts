@@ -30,10 +30,7 @@ export function createSshTunnel(config: SshTunnelConfig): Promise<TunnelResult> 
   try {
     ssh2 = require("ssh2");
   } catch {
-    throw new Error(
-      "ssh2 package not installed. Run:\n" +
-      "  npm install ssh2 @types/ssh2"
-    );
+    throw new Error("ssh2 package not installed. Run:\n" + "  npm install ssh2 @types/ssh2");
   }
 
   return new Promise((resolve, reject) => {

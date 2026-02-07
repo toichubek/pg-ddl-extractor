@@ -55,8 +55,8 @@ async function main(): Promise<void> {
   const outputDir = options.output
     ? path.resolve(options.output)
     : process.env.SQL_OUTPUT_DIR
-    ? path.resolve(process.env.SQL_OUTPUT_DIR, env)
-    : path.resolve(__dirname, "..", "..", "sql", env);
+      ? path.resolve(process.env.SQL_OUTPUT_DIR, env)
+      : path.resolve(__dirname, "..", "..", "sql", env);
 
   console.log("═══════════════════════════════════════════════════");
   console.log(`  PostgreSQL DDL Extractor`);
@@ -69,17 +69,18 @@ async function main(): Promise<void> {
   let tunnel: TunnelResult | null = null;
 
   // Get DB config - use CLI options if provided, otherwise use env-based config
-  let pgConfig = options.host || options.database || options.user
-    ? {
-        host: options.host || "localhost",
-        port: options.port ? parseInt(options.port, 10) : 5432,
-        database: options.database!,
-        user: options.user!,
-        password: options.password || "",
-        connectionTimeoutMillis: 10000,
-        query_timeout: 30000,
-      }
-    : getDbConfig(env);
+  let pgConfig =
+    options.host || options.database || options.user
+      ? {
+          host: options.host || "localhost",
+          port: options.port ? parseInt(options.port, 10) : 5432,
+          database: options.database!,
+          user: options.user!,
+          password: options.password || "",
+          connectionTimeoutMillis: 10000,
+          query_timeout: 30000,
+        }
+      : getDbConfig(env);
 
   // Validate required fields if using CLI options
   if (options.host || options.database || options.user) {
@@ -92,7 +93,9 @@ async function main(): Promise<void> {
     if (options.port) {
       const port = parseInt(options.port, 10);
       if (isNaN(port) || port < 1 || port > 65535) {
-        console.error(`❌ Invalid port number: "${options.port}". Port must be between 1 and 65535`);
+        console.error(
+          `❌ Invalid port number: "${options.port}". Port must be between 1 and 65535`
+        );
         process.exit(1);
       }
     }

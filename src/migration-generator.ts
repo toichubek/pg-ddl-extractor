@@ -137,9 +137,7 @@ function getCategoryObjectType(category: string): string {
 
 function stripHeader(content: string): string {
   const lines = content.split("\n");
-  const start = lines.findIndex(
-    (l) => !l.startsWith("-- ") && l.trim() !== ""
-  );
+  const start = lines.findIndex((l) => !l.startsWith("-- ") && l.trim() !== "");
   return start >= 0 ? lines.slice(start).join("\n").trim() : content.trim();
 }
 
@@ -186,12 +184,7 @@ export function generateMigration(sqlRoot: string): Migration {
       drops++;
     } else if (item.status === "modified") {
       // ALTER: object exists in both but differs
-      const sql = generateAlterSql(
-        item.category,
-        item.object,
-        item.devFile!,
-        item.prodFile!
-      );
+      const sql = generateAlterSql(item.category, item.object, item.devFile!, item.prodFile!);
       const priority = categoryPriority * 100 + ACTION_PRIORITY.ALTER;
 
       commands.push({

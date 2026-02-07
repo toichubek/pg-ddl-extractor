@@ -59,9 +59,7 @@ function fileHash(filepath: string): string {
 /** Strip the auto-generated header (timestamps etc) so we compare only DDL */
 function stripHeader(content: string): string {
   const lines = content.split("\n");
-  const start = lines.findIndex(
-    (l) => !l.startsWith("-- ") && l.trim() !== ""
-  );
+  const start = lines.findIndex((l) => !l.startsWith("-- ") && l.trim() !== "");
   return start >= 0 ? lines.slice(start).join("\n").trim() : content.trim();
 }
 
@@ -90,9 +88,7 @@ function lineDiff(devPath: string, prodPath: string): string[] {
     return simpleDiff(devNorm, prodNorm);
   }
 
-  const dp: number[][] = Array.from({ length: m + 1 }, () =>
-    new Array(n + 1).fill(0)
-  );
+  const dp: number[][] = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
 
   for (let i = 1; i <= m; i++) {
     for (let j = 1; j <= n; j++) {
@@ -144,7 +140,11 @@ function lineDiff(devPath: string, prodPath: string): string[] {
   for (let idx = 0; idx < rawDiff.length; idx++) {
     if (rawDiff[idx].type !== "context") {
       // Mark surrounding context lines
-      for (let c = Math.max(0, idx - CONTEXT_LINES); c <= Math.min(rawDiff.length - 1, idx + CONTEXT_LINES); c++) {
+      for (
+        let c = Math.max(0, idx - CONTEXT_LINES);
+        c <= Math.min(rawDiff.length - 1, idx + CONTEXT_LINES);
+        c++
+      ) {
         showLines.add(c);
       }
     }
@@ -219,9 +219,7 @@ export function compareDdl(sqlRoot: string): DiffSummary {
   if (!fs.existsSync(devDir)) throw new Error(`DEV folder not found: ${devDir}`);
   if (!fs.existsSync(prodDir)) throw new Error(`PROD folder not found: ${prodDir}`);
 
-  const allCategories = [
-    ...new Set([...getCategories(devDir), ...getCategories(prodDir)]),
-  ].sort();
+  const allCategories = [...new Set([...getCategories(devDir), ...getCategories(prodDir)])].sort();
 
   const items: DiffItem[] = [];
   let totalDev = 0;
@@ -235,9 +233,7 @@ export function compareDdl(sqlRoot: string): DiffSummary {
     totalDev += devFiles.size;
     totalProd += prodFiles.size;
 
-    const allObjects = [
-      ...new Set([...devFiles.keys(), ...prodFiles.keys()]),
-    ].sort();
+    const allObjects = [...new Set([...devFiles.keys(), ...prodFiles.keys()])].sort();
 
     for (const obj of allObjects) {
       const inDev = devFiles.has(obj);
@@ -821,10 +817,18 @@ ${
           ? `<div class="diff-block">${item.diff
               .slice(0, 50)
               .map((d) => {
-                const cls = d.startsWith("- DEV") ? "dev" : d.startsWith("+ PROD") ? "prod" : d.trim() === "..." ? "sep" : "ctx";
+                const cls = d.startsWith("- DEV")
+                  ? "dev"
+                  : d.startsWith("+ PROD")
+                    ? "prod"
+                    : d.trim() === "..."
+                      ? "sep"
+                      : "ctx";
                 return `<div class="diff-line ${cls}">${escapeHtml(d)}</div>`;
               })
-              .join("")}${item.diff.length > 50 ? `<div class="diff-line" style="color:var(--text-muted)">... ${item.diff.length - 50} more lines</div>` : ""}</div>`
+              .join(
+                ""
+              )}${item.diff.length > 50 ? `<div class="diff-line" style="color:var(--text-muted)">... ${item.diff.length - 50} more lines</div>` : ""}</div>`
           : ""
       }
     </div>`

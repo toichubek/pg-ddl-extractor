@@ -33,8 +33,8 @@ function main(): void {
   const sqlRoot = options.sqlDir
     ? path.resolve(options.sqlDir)
     : process.env.SQL_OUTPUT_DIR
-    ? path.resolve(process.env.SQL_OUTPUT_DIR)
-    : path.resolve(__dirname, "..", "..", "sql");
+      ? path.resolve(process.env.SQL_OUTPUT_DIR)
+      : path.resolve(__dirname, "..", "..", "sql");
 
   if (!fs.existsSync(sqlRoot)) {
     console.error(`❌ sql/ folder not found at: ${sqlRoot}`);
