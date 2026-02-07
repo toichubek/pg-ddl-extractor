@@ -1,153 +1,312 @@
-# 📦 PostgreSQL DDL Extractor
+# PostgreSQL DDL Extractor
 
 [![npm version](https://badge.fury.io/js/@toichubek%2Fpg-ddl-extractor.svg)](https://www.npmjs.com/package/@toichubek/pg-ddl-extractor)
 [![npm downloads](https://img.shields.io/npm/dm/@toichubek/pg-ddl-extractor.svg)](https://www.npmjs.com/package/@toichubek/pg-ddl-extractor)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js Version](https://img.shields.io/node/v/@toichubek/pg-ddl-extractor.svg)](https://nodejs.org)
 
-Extracts full database structure (DDL) from PostgreSQL and organizes it into a clean folder structure for Git version control.
+Extracts full database structure (DDL) from PostgreSQL and organizes it into a clean folder structure for Git version control. Includes diffing, migration generation, linting, documentation, and more.
 
 ## Quick Start
 
 ```bash
 npm install -g @toichubek/pg-ddl-extractor
-pg-ddl-init
+pg-ddl-init                    # Create project structure & .env template
 # Edit .env with your database credentials
-pg-ddl-extract --env dev
+pg-ddl-extract --env dev       # Extract schema → sql/dev/
 ```
 
-## 🚀 Installation
-
-### As npm package (recommended)
+## Installation
 
 ```bash
-# Install globally
+# Global (recommended)
 npm install -g @toichubek/pg-ddl-extractor
 
-# Or install locally in your project
+# Local
 npm install --save-dev @toichubek/pg-ddl-extractor
 ```
 
-### From source
+## All Commands
 
-Clone this repository and use directly with npm scripts.
+| Command | Description | Output |
+|---------|-------------|--------|
+| `pg-ddl-extract` | Extract DDL from database | `sql/<env>/` |
+| `pg-ddl-diff` | Compare DEV vs PROD schemas | console / `sql/reports/` |
+| `pg-ddl-migrate` | Generate migration SQL | `sql/migrations/` |
+| `pg-ddl-init` | Initialize project structure | `.env.example`, config, `sql/` |
+| `pg-ddl-lint` | Lint schema for common issues | console |
+| `pg-ddl-validate` | Validate conventions & consistency | console |
+| `pg-ddl-deps` | FK dependency graph & creation order | console / `.mmd` / `.dot` |
+| `pg-ddl-size` | Storage size analysis | console / JSON |
+| `pg-ddl-stats` | Database statistics overview | console |
+| `pg-ddl-search` | Search extracted SQL files | console |
+| `pg-ddl-docs` | Generate Markdown documentation | `sql/docs/` |
+| `pg-ddl-changelog` | Git-based schema changelog | console / Markdown |
+| `pg-ddl-snapshot-diff` | Compare schema between Git refs | console / Markdown |
+| `pg-ddl-watch` | Auto re-extract on schema changes | continuous |
 
-## Project Structure
+## Output Structure
 
 ```
-myproject/
-├── back/
-├── front/
-├── extract-db/              ← this tool
-│   ├── src/
-│   │   ├── extract.ts       ← entry point
-│   │   ├── extractor.ts     ← SQL queries
-│   │   ├── writer.ts        ← file writer
-│   │   └── config.ts        ← DB config
-│   ├── package.json
-│   ├── tsconfig.json
-│   └── .env
-└── sql/                     ← output goes here
-    ├── dev/
-    │   ├── _full_dump.sql
-    │   ├── schemas/
-    │   │   └── public.sql
-    │   ├── tables/
-    │   │   ├── public.users.sql
-    │   │   ├── public.orders.sql
-    │   │   └── ...
-    │   ├── functions/
-    │   │   ├── public.calculate_total.sql
-    │   │   └── ...
-    │   ├── views/
-    │   ├── materialized_views/
-    │   ├── sequences/
-    │   ├── triggers/
-    │   ├── types/
-    │   └── indexes/
-    └── prod/
-        └── ... (same structure)
+sql/
+├── dev/                        ← pg-ddl-extract --env dev
+│   ├── _full_dump.sql
+│   ├── schemas/
+│   │   └── public.sql
+│   ├── tables/
+│   │   ├── public.users.sql
+│   │   └── public.orders.sql
+│   ├── functions/
+│   ├── views/
+│   ├── materialized_views/
+│   ├── sequences/
+│   ├── triggers/
+│   ├── types/
+│   └── indexes/
+├── prod/                       ← pg-ddl-extract --env prod
+│   └── ... (same structure)
+├── docs/                       ← pg-ddl-docs
+│   ├── schema_dev.md
+│   └── erd_dev.md
+├── reports/                    ← pg-ddl-diff --report
+│   └── diff_report.md
+└── migrations/                 ← pg-ddl-migrate
+    ├── 20260207_120000_dev_to_prod.sql
+    └── 20260207_120000_rollback.sql
 ```
 
 ## What Gets Extracted
 
-| Object             | Includes                                          |
-|--------------------|---------------------------------------------------|
-| **Tables**         | Columns, PK, FK, UNIQUE, CHECK, defaults, comments |
-| **Functions**      | Full `CREATE FUNCTION` via `pg_get_functiondef()`  |
-| **Views**          | `CREATE OR REPLACE VIEW`                           |
-| **Materialized Views** | `CREATE MATERIALIZED VIEW`                     |
-| **Sequences**      | INCREMENT, MIN, MAX, START, CYCLE                  |
-| **Triggers**       | Timing, events, action                             |
-| **Types**          | Enum and composite types                           |
-| **Indexes**        | Non-constraint indexes only                        |
-| **Schemas**        | `CREATE SCHEMA IF NOT EXISTS`                      |
+| Object | Includes |
+|--------|----------|
+| **Tables** | Columns, PK, FK, UNIQUE, CHECK, defaults, comments |
+| **Functions** | Full `CREATE FUNCTION` via `pg_get_functiondef()` |
+| **Views** | `CREATE OR REPLACE VIEW` |
+| **Materialized Views** | `CREATE MATERIALIZED VIEW` |
+| **Sequences** | INCREMENT, MIN, MAX, START, CYCLE |
+| **Triggers** | Timing, events, action |
+| **Types** | Enum and composite types |
+| **Indexes** | Non-constraint indexes only |
+| **Schemas** | `CREATE SCHEMA IF NOT EXISTS` |
 
-## Schema Linting
+---
 
-Check your database schema for common issues and best practices:
+## Core Commands
+
+### pg-ddl-extract
+
+Extract database DDL into organized SQL files.
 
 ```bash
-# Lint DEV database
+pg-ddl-extract --env dev                          # Extract DEV → sql/dev/
+pg-ddl-extract --env prod                         # Extract PROD → sql/prod/
+pg-ddl-extract --host localhost --database mydb --user postgres
+
+# Filters
+pg-ddl-extract --env dev --schema public,auth     # Only specific schemas
+pg-ddl-extract --env dev --tables public.users     # Only specific tables
+pg-ddl-extract --env dev --exclude-schema test     # Exclude schemas
+pg-ddl-extract --env dev --exclude-tables public.logs
+
+# Data export
+pg-ddl-extract --env dev --with-data countries,currencies --max-rows 5000
+
+# Formats & modes
+pg-ddl-extract --env dev --format json            # Export as JSON
+pg-ddl-extract --env dev --incremental            # Only changed objects
+pg-ddl-extract --env dev --progress               # Show progress bar
+pg-ddl-extract --env dev --output /custom/path    # Custom output
+```
+
+**Options:**
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--env <env>` | Environment (dev/prod) | `dev` |
+| `--host <host>` | Database host | from .env |
+| `--port <port>` | Database port | `5432` |
+| `--database <db>` | Database name | from .env |
+| `--user <user>` | Database user | from .env |
+| `--password <pass>` | Database password | from .env |
+| `--output <path>` | Output directory | `sql/<env>` |
+| `--schema <list>` | Include schemas (comma-separated) | all |
+| `--tables <list>` | Include tables (schema.table) | all |
+| `--exclude-schema <list>` | Exclude schemas | none |
+| `--exclude-tables <list>` | Exclude tables | none |
+| `--with-data <list>` | Tables to export INSERT data | none |
+| `--max-rows <n>` | Max rows per data table | `10000` |
+| `--format <fmt>` | Output: `sql` or `json` | `sql` |
+| `--incremental` | Only re-extract changed objects | off |
+| `--progress` | Show progress bar | off |
+
+### pg-ddl-diff
+
+Compare schemas between environments.
+
+```bash
+pg-ddl-diff                                       # Compare DEV vs PROD
+pg-ddl-diff --report                              # Save markdown + HTML report
+pg-ddl-diff --side-by-side                        # Side-by-side HTML diff
+pg-ddl-diff --dev /path/to/dev --prod /path/to/prod
+pg-ddl-diff --envs dev,staging,prod               # Multi-environment compare
+```
+
+**Options:**
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--report` | Save markdown/HTML reports | off |
+| `--side-by-side` | Side-by-side HTML diff | off |
+| `--sql-dir <path>` | SQL directory | `./sql` |
+| `--dev <path>` | Dev schema path | auto |
+| `--prod <path>` | Prod schema path | auto |
+| `--envs <list>` | Compare multiple envs | dev,prod |
+
+### pg-ddl-migrate
+
+Generate migration SQL from DEV to PROD.
+
+```bash
+pg-ddl-migrate                                    # Generate migration
+pg-ddl-migrate --with-rollback                    # With rollback script
+pg-ddl-migrate --dry-run                          # Preview without saving
+pg-ddl-migrate --interactive                      # Review each change
+pg-ddl-migrate --pre-check                        # Run health checks first
+pg-ddl-migrate --track --database mydb --user postgres  # Track in DB
+pg-ddl-migrate --history --database mydb --user postgres  # View history
+```
+
+**Options:**
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--sql-dir <path>` | SQL directory | `./sql` |
+| `--dev <path>` | Dev schema path | auto |
+| `--prod <path>` | Prod schema path | auto |
+| `--with-rollback` | Generate rollback script | off |
+| `--dry-run` | Preview only | off |
+| `--interactive` | Review each change | off |
+| `--pre-check` | Health checks before migration | off |
+| `--history` | Show migration history | off |
+| `--track` | Record migration in DB | off |
+
+### pg-ddl-init
+
+Initialize project structure with config templates.
+
+```bash
+pg-ddl-init                                       # Create .env.example, config, sql/
+```
+
+---
+
+## Analysis Commands
+
+### pg-ddl-lint
+
+Lint your database schema for common issues and best practices.
+
+```bash
 pg-ddl-lint --env dev
-
-# Lint PROD database
 pg-ddl-lint --env prod
-
-# Lint with direct connection
 pg-ddl-lint --host localhost --database mydb --user postgres
 ```
 
-### Lint Rules
+**Lint Rules:**
 
 | Rule | Severity | Description |
 |------|----------|-------------|
 | `no-primary-key` | Error | Tables without PRIMARY KEY |
-| `missing-fk-index` | Warning | Foreign key columns without index (slow JOINs) |
+| `missing-fk-index` | Warning | FK columns without index (slow JOINs) |
 | `duplicate-index` | Warning | Indexes with identical column sets |
-| `unused-index` | Info | Indexes that have never been scanned |
+| `unused-index` | Info | Indexes never scanned |
 | `no-table-comment` | Info | Tables without COMMENT |
 | `unowned-sequence` | Info | Sequences not owned by any column |
 
-Exit code is `1` if any errors are found (useful for CI/CD).
+Exit code `1` if any errors found (useful for CI/CD).
 
-## Watch Mode
+### pg-ddl-validate
 
-Automatically re-extract DDL when schema changes are detected:
+Validate schema consistency and conventions.
 
 ```bash
-# Watch DEV database every 30 seconds (default)
-pg-ddl-watch --env dev
-
-# Custom poll interval (minimum 5 seconds)
-pg-ddl-watch --env dev --interval 60
-
-# Watch with direct connection
-pg-ddl-watch --host localhost --database mydb --user postgres --interval 15
+pg-ddl-validate --env dev
+pg-ddl-validate --env dev --sql-dir ./sql         # Check files vs live DB
+pg-ddl-validate --env dev --strict                # Warnings become errors
+pg-ddl-validate --host localhost --database mydb --user postgres
 ```
 
-Watch mode:
-- Performs an initial full extraction on startup
-- Polls the database for schema changes at the configured interval
-- Only re-extracts when actual changes are detected (using schema hash)
-- Shows periodic heartbeat messages every 10 checks
-- Press `Ctrl+C` to stop gracefully
+**Validation Checks:**
 
-## Schema Documentation
+| Check | Severity | Description |
+|-------|----------|-------------|
+| `no-primary-key` | Error | Tables without PRIMARY KEY |
+| `wide-table` | Warning | Tables with >20 columns |
+| `no-indexes` | Warning | Tables with no indexes |
+| `stale-file` | Warning | Extracted files for removed objects |
+| `missing-extract` | Warning | DB objects not in extracted files |
+| `vague-column-name` | Info | Generic names like "data", "info" |
+| `nullable-fk` | Info | Nullable foreign key columns |
 
-Auto-generate Markdown documentation from your database schema (saved to `sql/docs/` by default):
+Exit code `1` on errors (or warnings in `--strict` mode).
+
+### pg-ddl-deps
+
+Analyze FK dependencies and get safe table creation order.
 
 ```bash
-# Generate docs for DEV (output: sql/docs/)
-pg-ddl-docs --env dev
+pg-ddl-deps --env dev                             # Show dependency graph
+pg-ddl-deps --env dev --order                     # Topological creation order
+pg-ddl-deps --env dev --mermaid --output deps.mmd # Mermaid ERD export
+pg-ddl-deps --env dev --dot --output deps.dot     # Graphviz DOT export
+pg-ddl-deps --host localhost --database mydb --user postgres
+```
 
-# Generate docs with ERD diagram (Mermaid)
-pg-ddl-docs --env dev --diagram
+### pg-ddl-size
 
-# Custom output directory
-pg-ddl-docs --env dev --output ./my-docs
+Detailed storage analysis by schema, table, and index.
 
-# Direct connection
+```bash
+pg-ddl-size --env dev                             # Full size report
+pg-ddl-size --env dev --top 10                    # Top 10 largest
+pg-ddl-size --env dev --json --output size.json   # Export as JSON
+pg-ddl-size --host localhost --database mydb --user postgres
+```
+
+### pg-ddl-stats
+
+Database statistics overview (table counts, sizes, activity).
+
+```bash
+pg-ddl-stats --env dev
+pg-ddl-stats --env prod
+pg-ddl-stats --host localhost --database mydb --user postgres
+```
+
+### pg-ddl-search
+
+Search across extracted SQL files with regex support.
+
+```bash
+pg-ddl-search "email" --env dev                   # Search for keyword
+pg-ddl-search "user_id" -i                        # Case-insensitive
+pg-ddl-search "created_at" --category tables      # Only in tables
+pg-ddl-search "DEFAULT now\(\)" --env dev         # Regex patterns
+pg-ddl-search "FOREIGN KEY" --sql-dir /path/to/sql
+```
+
+---
+
+## Documentation Commands
+
+### pg-ddl-docs
+
+Auto-generate Markdown documentation from your database schema.
+
+```bash
+pg-ddl-docs --env dev                             # Generate → sql/docs/
+pg-ddl-docs --env dev --diagram                   # With Mermaid ERD
+pg-ddl-docs --env dev --output ./my-docs          # Custom output
 pg-ddl-docs --host localhost --database mydb --user postgres --diagram
 ```
 
@@ -160,165 +319,55 @@ Generated documentation includes:
 - Views and functions listing
 - Optional Mermaid ERD diagram
 
-## Size Report
+### pg-ddl-changelog
 
-Detailed storage analysis by schema, table, and index:
-
-```bash
-# Show size report
-pg-ddl-size --env dev
-
-# Top 10 largest objects
-pg-ddl-size --env dev --top 10
-
-# Export as JSON
-pg-ddl-size --env dev --json --output size.json
-
-# Direct connection
-pg-ddl-size --host localhost --database mydb --user postgres
-```
-
-## Snapshot Comparison
-
-Compare schema snapshots between Git commits or tags:
+Generate a changelog from Git history of extracted SQL files.
 
 ```bash
-# Compare between two commits
-pg-ddl-snapshot-diff --from abc1234 --to def5678
-
-# Compare between tags
-pg-ddl-snapshot-diff --from v1.0.0 --to v2.0.0
-
-# Compare specific environment
-pg-ddl-snapshot-diff --from HEAD~5 --to HEAD --env dev
-
-# Export as Markdown report
-pg-ddl-snapshot-diff --from main~10 --to main --output snapshot-report.md
-```
-
-## Schema Changelog
-
-Generate a changelog from Git history of extracted SQL files:
-
-```bash
-# Show recent schema changes
-pg-ddl-changelog
-
-# Show changes for specific environment
-pg-ddl-changelog --env dev
-
-# Limit to last 10 commits
-pg-ddl-changelog --limit 10
-
-# Export as Markdown
-pg-ddl-changelog --markdown --output CHANGELOG.md
-
-# Custom SQL directory
+pg-ddl-changelog                                  # Recent schema changes
+pg-ddl-changelog --env dev                        # Specific environment
+pg-ddl-changelog --limit 10                       # Last 10 commits
+pg-ddl-changelog --markdown --output CHANGELOG.md # Export as Markdown
 pg-ddl-changelog --sql-dir /path/to/sql
 ```
 
-## Schema Validation
+### pg-ddl-snapshot-diff
 
-Validate schema consistency and conventions:
-
-```bash
-# Validate schema conventions
-pg-ddl-validate --env dev
-
-# Validate extracted files match live database
-pg-ddl-validate --env dev --sql-dir ./sql
-
-# Strict mode (warnings are errors)
-pg-ddl-validate --env dev --strict
-
-# Direct connection
-pg-ddl-validate --host localhost --database mydb --user postgres
-```
-
-Validation checks:
-- **no-primary-key** (error) — Tables without PRIMARY KEY
-- **wide-table** (warning) — Tables with >20 columns
-- **no-indexes** (warning) — Tables with no indexes
-- **stale-file** (warning) — Extracted files for objects no longer in DB
-- **missing-extract** (warning) — DB objects not in extracted files
-- **vague-column-name** (info) — Columns like "data", "info" with generic names
-- **nullable-fk** (info) — Nullable foreign key columns
-
-Exit code 1 on errors (or warnings in `--strict` mode) for CI/CD integration.
-
-## Schema Dependencies
-
-Analyze foreign key dependencies and get safe table creation order:
+Compare schema snapshots between Git commits or tags.
 
 ```bash
-# Show dependency graph
-pg-ddl-deps --env dev
-
-# Show topological creation order
-pg-ddl-deps --env dev --order
-
-# Export as Mermaid ERD
-pg-ddl-deps --env dev --mermaid --output deps.mmd
-
-# Export as Graphviz DOT
-pg-ddl-deps --env dev --dot --output deps.dot
-
-# With direct connection
-pg-ddl-deps --host localhost --database mydb --user postgres --order
+pg-ddl-snapshot-diff --from abc1234 --to def5678
+pg-ddl-snapshot-diff --from v1.0.0 --to v2.0.0
+pg-ddl-snapshot-diff --from HEAD~5 --to HEAD --env dev
+pg-ddl-snapshot-diff --from main~10 --to main --output snapshot-report.md
 ```
 
-## Schema Search
+---
 
-Search across extracted SQL files:
+## Automation Commands
+
+### pg-ddl-watch
+
+Automatically re-extract DDL when schema changes are detected.
 
 ```bash
-# Search for a column name
-pg-ddl-search "email" --env dev
-
-# Case-insensitive search
-pg-ddl-search "user_id" -i
-
-# Search only in tables
-pg-ddl-search "created_at" --category tables
-
-# Search with regex
-pg-ddl-search "DEFAULT now\(\)" --env dev
-
-# Custom SQL directory
-pg-ddl-search "FOREIGN KEY" --sql-dir /path/to/sql
+pg-ddl-watch --env dev                            # Poll every 30s (default)
+pg-ddl-watch --env dev --interval 60              # Custom interval
+pg-ddl-watch --host localhost --database mydb --user postgres --interval 15
 ```
 
-## Setup
+Watch mode:
+- Full extraction on startup
+- Polls for schema changes at configured interval
+- Only re-extracts when changes detected (schema hash)
+- Periodic heartbeat messages
+- Press `Ctrl+C` to stop
 
-```bash
-# Install dependencies
-npm install
-
-# Copy env template and fill in your DB credentials
-cp .env.example .env
-```
-
-Edit `.env`:
-
-```env
-DEV_DB_HOST=localhost
-DEV_DB_PORT=5432
-DEV_DB_NAME=my_database
-DEV_DB_USER=postgres
-DEV_DB_PASSWORD=secret
-
-PROD_DB_HOST=prod-server.example.com
-PROD_DB_PORT=5432
-PROD_DB_NAME=my_database
-PROD_DB_USER=readonly_user
-PROD_DB_PASSWORD=secret
-```
+---
 
 ## Configuration
 
-### Environment Variables
-
-You can configure database connections using environment variables in a `.env` file or via your shell:
+### Environment Variables (.env)
 
 ```env
 # DEV database
@@ -335,314 +384,21 @@ PROD_DB_NAME=my_database
 PROD_DB_USER=readonly_user
 PROD_DB_PASSWORD=secret
 
-# Optional: Custom output directory
+# Optional: SSH tunnel for PROD
+PROD_SSH_HOST=your-server.com
+PROD_SSH_PORT=22
+PROD_SSH_USER=your_ssh_user
+PROD_SSH_KEY_PATH=~/.ssh/id_rsa
+
+# Optional: custom output directory
 SQL_OUTPUT_DIR=/path/to/sql
 ```
 
-### CLI Flags
+**Priority:** CLI flags > Environment variables > .env file
 
-All commands support CLI flags to override environment variables:
+### Configuration File
 
-**`pg-ddl-extract` Options:**
-- `--env <environment>` - Environment name (dev or prod) - default: `dev`
-- `--host <host>` - Database host
-- `--port <port>` - Database port - default: `5432`
-- `--database <database>` - Database name (required with --host)
-- `--user <user>` - Database user (required with --host)
-- `--password <password>` - Database password
-- `--output <path>` - Custom output directory path
-- `--schema <schemas>` - Include only specific schemas (comma-separated)
-- `--tables <tables>` - Include only specific tables (comma-separated, format: schema.table)
-- `--exclude-schema <schemas>` - Exclude specific schemas (comma-separated)
-- `--exclude-tables <tables>` - Exclude specific tables (comma-separated, format: schema.table)
-- `--with-data <tables>` - Extract data as INSERT statements from specified tables (comma-separated)
-- `--max-rows <number>` - Max rows to extract per table - default: `10000`
-- `--format <format>` - Output format: `sql` (default) or `json`
-- `--incremental` - Only re-extract objects that changed since last run
-- `--progress` - Show progress bar during extraction
-- `--help` - Display help
-- `--version` - Display version
-
-**`pg-ddl-diff` Options:**
-- `--report` - Generate markdown and HTML reports
-- `--side-by-side` - Generate side-by-side HTML diff report with full source
-- `--sql-dir <path>` - Path to SQL directory - default: `./sql`
-- `--dev <path>` - Path to dev schema directory
-- `--prod <path>` - Path to prod schema directory
-- `--envs <environments>` - Compare multiple environments (comma-separated)
-- `--help` - Display help
-- `--version` - Display version
-
-**`pg-ddl-migrate` Options:**
-- `--sql-dir <path>` - Path to SQL directory - default: `./sql`
-- `--dev <path>` - Path to dev schema directory
-- `--prod <path>` - Path to prod schema directory
-- `--with-rollback` - Generate rollback script alongside migration
-- `--dry-run` - Preview migration plan without saving files
-- `--interactive` - Review each change interactively before including
-- `--pre-check` - Run database health checks before generating migration
-- `--history` - Show migration history from the database
-- `--track` - Record migration in `schema_migrations` table after generating
-- `--help` - Display help
-- `--version` - Display version
-
-## Usage
-
-### CLI Commands (after global install)
-
-```bash
-# Extract DEV database → saves to ./sql/dev/
-pg-ddl-extract --env dev
-
-# Extract PROD database → saves to ./sql/prod/
-pg-ddl-extract --env prod
-
-# Extract with direct connection (no .env file needed)
-pg-ddl-extract --host localhost --database mydb --user postgres --password secret
-
-# Extract to custom output directory
-pg-ddl-extract --env dev --output /custom/path
-
-# Selective extraction - extract only specific schemas
-pg-ddl-extract --env dev --schema public,auth
-
-# Extract only specific tables
-pg-ddl-extract --env dev --tables public.users,public.orders,auth.sessions
-
-# Exclude specific schemas
-pg-ddl-extract --env dev --exclude-schema test,temp
-
-# Exclude specific tables
-pg-ddl-extract --env dev --exclude-tables public.logs,public.cache
-
-# Combine filters - extract public schema but exclude logs table
-pg-ddl-extract --env dev --schema public --exclude-tables public.logs
-
-# Extract DDL + data from reference tables
-pg-ddl-extract --env dev --with-data countries,currencies,statuses
-
-# Extract data with row limit
-pg-ddl-extract --env dev --with-data public.users --max-rows 100
-
-# Export schema as JSON
-pg-ddl-extract --env dev --format json
-
-# JSON export with filters
-pg-ddl-extract --env dev --format json --schema public
-
-# Incremental extraction (only re-extract changed objects)
-pg-ddl-extract --env dev --incremental
-
-# Compare DEV vs PROD
-pg-ddl-diff
-
-# Compare and save reports
-pg-ddl-diff --report
-
-# Side-by-side HTML diff with full source code
-pg-ddl-diff --side-by-side
-
-# Compare with custom directories
-pg-ddl-diff --dev /path/to/dev --prod /path/to/prod
-
-# Compare multiple environments (dev, staging, prod)
-pg-ddl-diff --envs dev,staging,prod
-
-# Generate migration plan
-pg-ddl-migrate
-
-# Generate migration with rollback script
-pg-ddl-migrate --with-rollback
-
-# Preview migration without creating files
-pg-ddl-migrate --dry-run
-
-# Generate migration with custom SQL directory
-pg-ddl-migrate --sql-dir /custom/sql
-
-# Track migration in schema_migrations table
-pg-ddl-migrate --track --database mydb --user postgres
-
-# View migration history
-pg-ddl-migrate --history --database mydb --user postgres
-```
-
-### Examples with Environment Variables
-
-```bash
-# Unix/Linux/Mac - Pass env vars inline
-DEV_DB_HOST=localhost DEV_DB_NAME=mydb DEV_DB_USER=postgres pg-ddl-extract --env dev
-
-# Windows (PowerShell)
-$env:DEV_DB_HOST="localhost"; $env:DEV_DB_NAME="mydb"; pg-ddl-extract --env dev
-
-# Windows (cmd)
-set DEV_DB_HOST=localhost && set DEV_DB_NAME=mydb && pg-ddl-extract --env dev
-```
-
-### Using npm scripts (local install or from source)
-
-```bash
-# From your project root or extract-db/ folder
-npm run extract:dev
-npm run extract:prod
-npm run diff
-npm run diff:report
-npm run migrate
-npm run migrate:rollback  # Generate migration + rollback
-npm run migrate:dry-run   # Preview without saving
-```
-
-### Programmatic API
-
-```typescript
-import { Client } from "pg";
-import {
-  SqlFileWriter,
-  DdlExtractor,
-  compareDdl,
-  generateMigration,
-} from "@toichubek/pg-ddl-extractor";
-
-// Extract database DDL
-const client = new Client({ /* config */ });
-await client.connect();
-
-const writer = new SqlFileWriter("./sql/dev");
-const extractor = new DdlExtractor(client, writer);
-await extractor.extractAll();
-
-// Compare environments
-const summary = compareDdl("./sql");
-console.log(summary);
-
-// Generate migration
-const migration = generateMigration("./sql");
-```
-
-## Compare DEV vs PROD
-
-```bash
-# Print diff to console
-npm run diff
-
-# Print to console + save markdown report to sql/reports/
-npm run diff:report
-```
-
-## Generate Migration Plan
-
-```bash
-# Generate SQL migration file from DEV → PROD
-npm run migrate
-```
-
-This will:
-- Analyze differences between DEV and PROD
-- Generate SQL migration commands (CREATE, ALTER, DROP)
-- Save to `sql/migrations/YYYYMMDD_HHmmss_dev_to_prod.sql`
-- Organize commands in correct execution order
-- Add safety comments for manual review
-
-⚠️ **Important**: Always review and test migrations before running on production!
-
-Example output:
-```
-═══════════════════════════════════════════════════════════
-  Migration Plan Generated
-═══════════════════════════════════════════════════════════
-
-  📄 File: /path/to/sql/migrations/20260207_052700_dev_to_prod.sql
-
-  Summary:
-    🟢 Creates: 16
-    🔴 Drops:   57
-    🔄 Alters:  50
-    📊 Total:   123 commands
-
-  ⚠️  Next Steps:
-    1. Review the migration file carefully
-    2. Test on staging environment
-    3. Backup production database
-    4. Run: psql -d your_db -f 20260207_052700_dev_to_prod.sql
-
-═══════════════════════════════════════════════════════════
-```
-
-The generated migration file includes:
-- **Sequences** - CREATE SEQUENCE for new sequences
-- **Tables** - CREATE TABLE for new tables, with warnings for modified tables
-- **Functions** - CREATE OR REPLACE FUNCTION for new/modified functions
-- **Views** - CREATE OR REPLACE VIEW for new/modified views
-- **Triggers** - CREATE TRIGGER (may need manual adjustment)
-- **Indexes** - CREATE INDEX for new indexes
-- **Drops** - DROP ... IF EXISTS CASCADE for removed objects
-
-All commands are organized in correct dependency order.
-
-## Rollback Generation
-
-Generate rollback scripts alongside migrations for safe deployments:
-
-```bash
-# Generate both migration and rollback
-pg-ddl-migrate --with-rollback
-
-# Or with npm scripts
-npm run migrate:rollback
-```
-
-This creates two files:
-- `migrations/YYYYMMDD_HHmmss_dev_to_prod.sql` — Forward migration
-- `migrations/YYYYMMDD_HHmmss_rollback.sql` — Reverse migration
-
-The rollback script:
-- **DROPs** objects that were CREATEd by the migration
-- **RESTOREs** objects that were DROPped (from PROD DDL)
-- **REVERTs** modified objects to their PROD version
-- Wraps everything in a `BEGIN`/`COMMIT` transaction
-
-Example:
-```bash
-# Apply migration
-psql -d your_db -f sql/migrations/20260207_120000_dev_to_prod.sql
-
-# If something goes wrong — rollback!
-psql -d your_db -f sql/migrations/20260207_120000_rollback.sql
-```
-
-Example diff output:
-```
-═══════════════════════════════════════════════════════════
-  DEV vs PROD — DDL Comparison Report
-═══════════════════════════════════════════════════════════
-
-  DEV objects:  48
-  PROD objects: 45
-
-  ✅ Identical:  40
-  🔄 Modified:   3
-  🟢 Only DEV:   5
-  🔴 Only PROD:  2
-
-───────────────────────────────────────────────────────────
-  🟢 EXISTS ONLY IN DEV (not yet in prod)
-───────────────────────────────────────────────────────────
-    [tables] public.student_drafts
-    [functions] public.fn_calculate_scores
-
-───────────────────────────────────────────────────────────
-  🔄 MODIFIED (different between dev and prod)
-───────────────────────────────────────────────────────────
-
-    [tables] public.users
-      DEV  [5]: email varchar(255) NOT NULL
-      PROD [5]: email varchar(150) NOT NULL
-```
-
-## Configuration File
-
-Create `.pg-ddl-extractor.json` in your project root to set defaults:
+Create `.pg-ddl-extractor.json` in your project root:
 
 ```json
 {
@@ -667,97 +423,127 @@ Supported config files (searched in order):
 - `.pg-ddl-extractor.yaml`
 - `pg-ddl-extractor.config.json`
 
-CLI flags always override config file settings.
+### Direct Connection
+
+All commands support direct connection flags (no .env needed):
+
+```bash
+pg-ddl-extract --host localhost --port 5432 --database mydb --user postgres --password secret
+```
+
+---
+
+## Programmatic API
+
+```typescript
+import { Client } from "pg";
+import {
+  SqlFileWriter,
+  DdlExtractor,
+  compareDdl,
+  generateMigration,
+  JsonExporter,
+  DocsGenerator,
+  MigrationTracker,
+  SnapshotManager,
+  createPool,
+  ProgressBar,
+} from "@toichubek/pg-ddl-extractor";
+
+// Extract DDL
+const client = new Client({ /* config */ });
+await client.connect();
+
+const writer = new SqlFileWriter("./sql/dev");
+const extractor = new DdlExtractor(client, writer);
+await extractor.extractAll();
+
+// Export as JSON
+const jsonExporter = new JsonExporter(client);
+const schema = await jsonExporter.export();
+
+// Compare environments
+const summary = compareDdl("./sql");
+
+// Generate migration
+const migration = generateMigration("./sql");
+```
+
+---
+
+## Migration Workflow
+
+```bash
+# 1. Extract both environments
+pg-ddl-extract --env dev
+pg-ddl-extract --env prod
+
+# 2. Compare
+pg-ddl-diff --report
+
+# 3. Generate migration with rollback
+pg-ddl-migrate --with-rollback
+
+# 4. Review generated files
+cat sql/migrations/YYYYMMDD_HHmmss_dev_to_prod.sql
+
+# 5. Test on staging, then apply
+psql -d your_db -f sql/migrations/YYYYMMDD_HHmmss_dev_to_prod.sql
+
+# 6. If something goes wrong
+psql -d your_db -f sql/migrations/YYYYMMDD_HHmmss_rollback.sql
+```
+
+### Migration Safety
+
+- Uses `IF EXISTS` for DROP commands
+- Uses `CASCADE` where needed
+- `BEGIN`/`COMMIT` transaction wrapper
+- Complex changes marked with warnings for manual review
+- Track history with `--track` flag
+
+---
+
+## CI/CD Integration
+
+```bash
+# In your CI pipeline
+pg-ddl-lint --env dev              # Fail on schema errors
+pg-ddl-validate --env dev --strict # Fail on warnings too
+pg-ddl-extract --env dev           # Snapshot schema
+pg-ddl-diff                        # Check for drift
+```
 
 ## Git Workflow
 
 ```bash
-# From project root
+pg-ddl-extract --env dev
 git add sql/
 git commit -m "chore: update database DDL snapshot"
 ```
 
-### Recommended: Add to root project scripts
-
-In your root `package.json`:
-
-```json
-{
-  "scripts": {
-    "db:snapshot:dev": "cd extract-db && npx ts-node src/extract.ts --env dev",
-    "db:snapshot:prod": "cd extract-db && npx ts-node src/extract.ts --env prod"
-  }
-}
-```
-
-## Running Migrations
-
-After generating a migration file:
-
-1. **Review carefully** - Open the generated SQL file and review all changes
-2. **Test on staging** - Run the migration on a staging database first
-3. **Backup production** - Create a full backup before running on production
-4. **Run migration**:
-   ```bash
-   psql -h prod-host -U db_user -d database_name -f sql/migrations/YYYYMMDD_HHmmss_dev_to_prod.sql
-   ```
-
-### Migration Safety
-
-The generator includes safety features:
-- Uses `IF EXISTS` for DROP commands
-- Uses `CASCADE` where needed
-- Adds `BEGIN`/`COMMIT` transaction wrapper
-- Marks complex changes with ⚠️ for manual review
-- Provides comments explaining each change
-
-### What Requires Manual Review
-
-Some changes cannot be fully automated:
-- **Table modifications** - May need custom ALTER TABLE logic to preserve data
-- **Triggers** - May need table name specification
-- **Complex renames** - Should be done manually to avoid data loss
-- **Data migrations** - Any data transformation logic
-
-## Publishing to npm
+## npm Scripts (local install / from source)
 
 ```bash
-# 1. Update version in package.json
-npm version patch  # or minor, major
-
-# 2. Build the package
-npm run build
-
-# 3. Test locally with npm link
-npm link
-pg-ddl-extract --help
-
-# 4. Publish to npm
-npm publish --access public
-
-# 5. Or publish to private registry
-npm publish --registry https://your-registry.com
-```
-
-## Development
-
-```bash
-# Install dependencies
-npm install
-
-# Build TypeScript
-npm run build
-
-# Test locally
-npm link
+npm run extract:dev       # Extract DEV
+npm run extract:prod      # Extract PROD
+npm run diff              # Compare
+npm run diff:report       # Compare + save reports
+npm run migrate           # Generate migration
+npm run migrate:rollback  # Migration + rollback
+npm run migrate:dry-run   # Preview
+npm run schema:lint       # Lint schema
+npm run watch:dev         # Watch DEV
+npm run docs              # Generate docs
+npm run stats             # DB statistics
 ```
 
 ## Tips
 
 - Run before each release to capture DB changes
-- Use `git diff sql/` to review structural changes between commits
-- The `_full_dump.sql` can be used to recreate the schema from scratch
+- Use `git diff sql/` to review structural changes
+- The `_full_dump.sql` can recreate the schema from scratch
 - Use a **readonly** database user for PROD extraction
 - Add to CI/CD to auto-snapshot on deploy
-- Generate migration plan (`npm run migrate`) before each production deployment
+- Generate migration plan before each production deployment
 - Keep migration files in version control for audit trail
