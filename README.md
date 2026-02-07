@@ -157,6 +157,7 @@ All commands support CLI flags to override environment variables:
 - `--dev <path>` - Path to dev schema directory
 - `--prod <path>` - Path to prod schema directory
 - `--with-rollback` - Generate rollback script alongside migration
+- `--dry-run` - Preview migration plan without saving files
 - `--help` - Display help
 - `--version` - Display version
 
@@ -207,6 +208,9 @@ pg-ddl-migrate
 # Generate migration with rollback script
 pg-ddl-migrate --with-rollback
 
+# Preview migration without creating files
+pg-ddl-migrate --dry-run
+
 # Generate migration with custom SQL directory
 pg-ddl-migrate --sql-dir /custom/sql
 ```
@@ -234,6 +238,7 @@ npm run diff
 npm run diff:report
 npm run migrate
 npm run migrate:rollback  # Generate migration + rollback
+npm run migrate:dry-run   # Preview without saving
 ```
 
 ### Programmatic API

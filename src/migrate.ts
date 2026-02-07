@@ -8,6 +8,7 @@ import {
   saveMigration,
   saveRollback,
   printMigrationSummary,
+  printDryRun,
 } from "./migration-generator";
 
 // ─── Load .env ────────────────────────────────────────────────────
@@ -20,6 +21,7 @@ interface CliOptions {
   prod?: string;
   output?: string;
   withRollback?: boolean;
+  dryRun?: boolean;
 }
 
 function parseArgs(): CliOptions {
@@ -32,6 +34,7 @@ function parseArgs(): CliOptions {
     .option("--prod <path>", "Path to prod schema directory")
     .option("--output <path>", "Output directory for migration files")
     .option("--with-rollback", "Generate rollback script alongside migration")
+    .option("--dry-run", "Preview migration plan without saving files")
     .parse(process.argv);
 
   return program.opts<CliOptions>();
@@ -71,6 +74,12 @@ function main(): void {
   try {
     // Generate migration plan
     const migration = generateMigration(sqlRoot);
+
+    if (options.dryRun) {
+      // Dry-run: show what would be done without saving
+      printDryRun(migration);
+      return;
+    }
 
     // Save migration to file
     const filepath = saveMigration(sqlRoot, migration);

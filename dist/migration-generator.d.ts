@@ -33,4 +33,5 @@ export declare function saveRollback(sqlRoot: string, rollback: Rollback): strin
 export declare function formatMigrationSql(migration: Migration): string;
 export declare function saveMigration(sqlRoot: string, migration: Migration): string;
 export declare function printMigrationSummary(migration: Migration, filepath: string, rollbackPath?: string): void;
+export declare function printDryRun(migration: Migration): void;
 export {};

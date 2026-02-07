@@ -50,6 +50,7 @@ function parseArgs() {
         .option("--prod <path>", "Path to prod schema directory")
         .option("--output <path>", "Output directory for migration files")
         .option("--with-rollback", "Generate rollback script alongside migration")
+        .option("--dry-run", "Preview migration plan without saving files")
         .parse(process.argv);
     return commander_1.program.opts();
 }
@@ -81,6 +82,11 @@ function main() {
     try {
         // Generate migration plan
         const migration = (0, migration_generator_1.generateMigration)(sqlRoot);
+        if (options.dryRun) {
+            // Dry-run: show what would be done without saving
+            (0, migration_generator_1.printDryRun)(migration);
+            return;
+        }
         // Save migration to file
         const filepath = (0, migration_generator_1.saveMigration)(sqlRoot, migration);
         // Generate and save rollback if requested

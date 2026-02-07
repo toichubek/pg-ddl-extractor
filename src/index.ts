@@ -12,6 +12,7 @@ export {
   formatMigrationSql,
   formatRollbackSql,
   printMigrationSummary,
+  printDryRun,
 } from "./migration-generator";
 
 // Re-export types

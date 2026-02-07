@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.printMigrationSummary = exports.formatRollbackSql = exports.formatMigrationSql = exports.saveRollback = exports.saveMigration = exports.generateRollback = exports.generateMigration = exports.formatHtmlReport = exports.formatMarkdownReport = exports.formatConsoleReport = exports.compareDdl = exports.createSshTunnel = exports.getSshConfig = exports.getDbConfig = exports.DdlExtractor = exports.SqlFileWriter = void 0;
+exports.printDryRun = exports.printMigrationSummary = exports.formatRollbackSql = exports.formatMigrationSql = exports.saveRollback = exports.saveMigration = exports.generateRollback = exports.generateMigration = exports.formatHtmlReport = exports.formatMarkdownReport = exports.formatConsoleReport = exports.compareDdl = exports.createSshTunnel = exports.getSshConfig = exports.getDbConfig = exports.DdlExtractor = exports.SqlFileWriter = void 0;
 // Public API exports
 var writer_1 = require("./writer");
 Object.defineProperty(exports, "SqlFileWriter", { enumerable: true, get: function () { return writer_1.SqlFileWriter; } });
@@ -24,3 +24,4 @@ Object.defineProperty(exports, "saveRollback", { enumerable: true, get: function
 Object.defineProperty(exports, "formatMigrationSql", { enumerable: true, get: function () { return migration_generator_1.formatMigrationSql; } });
 Object.defineProperty(exports, "formatRollbackSql", { enumerable: true, get: function () { return migration_generator_1.formatRollbackSql; } });
 Object.defineProperty(exports, "printMigrationSummary", { enumerable: true, get: function () { return migration_generator_1.printMigrationSummary; } });
+Object.defineProperty(exports, "printDryRun", { enumerable: true, get: function () { return migration_generator_1.printDryRun; } });

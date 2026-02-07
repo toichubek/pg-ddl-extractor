@@ -498,3 +498,91 @@ export function printMigrationSummary(
 
   console.log("═══════════════════════════════════════════════════════════");
 }
+
+// ─── Dry-run Preview ─────────────────────────────────────────
+
+export function printDryRun(migration: Migration): void {
+  console.log("═══════════════════════════════════════════════════════════");
+  console.log("  DRY RUN — Migration Preview (no files created)");
+  console.log("═══════════════════════════════════════════════════════════");
+  console.log("");
+  console.log("  Summary:");
+  console.log(`    🟢 Creates: ${migration.summary.creates}`);
+  console.log(`    🔴 Drops:   ${migration.summary.drops}`);
+  console.log(`    🔄 Alters:  ${migration.summary.alters}`);
+  console.log(`    📊 Total:   ${migration.commands.length} commands`);
+  console.log("");
+
+  if (migration.commands.length === 0) {
+    console.log("  🎉 DEV and PROD are in sync - no migration needed!");
+    console.log("");
+    console.log("═══════════════════════════════════════════════════════════");
+    return;
+  }
+
+  // Group commands by action type
+  const creates = migration.commands.filter((c) => c.comment.startsWith("Create"));
+  const drops = migration.commands.filter((c) => c.comment.startsWith("Drop"));
+  const modifies = migration.commands.filter((c) => c.comment.startsWith("Modify"));
+
+  if (creates.length > 0) {
+    console.log("───────────────────────────────────────────────────────────");
+    console.log("  🟢 WILL CREATE:");
+    console.log("───────────────────────────────────────────────────────────");
+    for (const cmd of creates) {
+      console.log(`    + [${cmd.category}] ${cmd.object}`);
+    }
+    console.log("");
+  }
+
+  if (modifies.length > 0) {
+    console.log("───────────────────────────────────────────────────────────");
+    console.log("  🔄 WILL MODIFY:");
+    console.log("───────────────────────────────────────────────────────────");
+    for (const cmd of modifies) {
+      const hasWarning = cmd.sql.includes("⚠️");
+      const marker = hasWarning ? " ⚠️  (manual review needed)" : "";
+      console.log(`    ~ [${cmd.category}] ${cmd.object}${marker}`);
+    }
+    console.log("");
+  }
+
+  if (drops.length > 0) {
+    console.log("───────────────────────────────────────────────────────────");
+    console.log("  🔴 WILL DROP:");
+    console.log("───────────────────────────────────────────────────────────");
+    for (const cmd of drops) {
+      console.log(`    - [${cmd.category}] ${cmd.object}`);
+    }
+    console.log("");
+  }
+
+  // Show SQL preview
+  console.log("───────────────────────────────────────────────────────────");
+  console.log("  📝 SQL Preview:");
+  console.log("───────────────────────────────────────────────────────────");
+  console.log("");
+
+  let currentCategory = "";
+  for (const cmd of migration.commands) {
+    if (cmd.category !== currentCategory) {
+      console.log(`  -- ${cmd.category.toUpperCase()}`);
+      currentCategory = cmd.category;
+    }
+
+    // Show first few lines of each SQL command
+    const lines = cmd.sql.split("\n");
+    const preview = lines.slice(0, 3);
+    for (const line of preview) {
+      console.log(`  ${line}`);
+    }
+    if (lines.length > 3) {
+      console.log(`  ... (${lines.length - 3} more lines)`);
+    }
+    console.log("");
+  }
+
+  console.log("═══════════════════════════════════════════════════════════");
+  console.log("  To generate the actual migration file, run without --dry-run");
+  console.log("═══════════════════════════════════════════════════════════");
+}
