@@ -151,6 +151,27 @@ Generated documentation includes:
 - Views and functions listing
 - Optional Mermaid ERD diagram
 
+## Schema Search
+
+Search across extracted SQL files:
+
+```bash
+# Search for a column name
+pg-ddl-search "email" --env dev
+
+# Case-insensitive search
+pg-ddl-search "user_id" -i
+
+# Search only in tables
+pg-ddl-search "created_at" --category tables
+
+# Search with regex
+pg-ddl-search "DEFAULT now\(\)" --env dev
+
+# Custom SQL directory
+pg-ddl-search "FOREIGN KEY" --sql-dir /path/to/sql
+```
+
 ## Setup
 
 ```bash

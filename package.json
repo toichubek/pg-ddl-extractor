@@ -11,7 +11,8 @@
     "pg-ddl-lint": "dist/cli/lint.js",
     "pg-ddl-watch": "dist/cli/watch.js",
     "pg-ddl-docs": "dist/cli/docs.js",
-    "pg-ddl-stats": "dist/cli/stats.js"
+    "pg-ddl-stats": "dist/cli/stats.js",
+    "pg-ddl-search": "dist/cli/search.js"
   },
   "files": [
     "dist",
