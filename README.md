@@ -201,6 +201,7 @@ All commands support CLI flags to override environment variables:
 - `--sql-dir <path>` - Path to SQL directory - default: `./sql`
 - `--dev <path>` - Path to dev schema directory
 - `--prod <path>` - Path to prod schema directory
+- `--envs <environments>` - Compare multiple environments (comma-separated)
 - `--help` - Display help
 - `--version` - Display version
 
@@ -259,6 +260,9 @@ pg-ddl-diff --report
 
 # Compare with custom directories
 pg-ddl-diff --dev /path/to/dev --prod /path/to/prod
+
+# Compare multiple environments (dev, staging, prod)
+pg-ddl-diff --envs dev,staging,prod
 
 # Generate migration plan
 pg-ddl-migrate

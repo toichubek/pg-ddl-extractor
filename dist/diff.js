@@ -49,6 +49,7 @@ function parseArgs() {
         .option("--sql-dir <path>", "Path to SQL directory (default: ../../sql)")
         .option("--dev <path>", "Path to dev schema directory")
         .option("--prod <path>", "Path to prod schema directory")
+        .option("--envs <environments>", "Compare multiple environments (comma-separated, e.g. dev,staging,prod)")
         .parse(process.argv);
     return commander_1.program.opts();
 }
@@ -66,19 +67,40 @@ function main() {
         console.error("   Run extract:dev and extract:prod first.");
         process.exit(1);
     }
-    // Determine dev and prod directories
-    const devDir = options.dev ? path.resolve(options.dev) : path.join(sqlRoot, "dev");
-    const prodDir = options.prod ? path.resolve(options.prod) : path.join(sqlRoot, "prod");
-    if (!fs.existsSync(devDir)) {
-        console.error("❌ sql/dev/ not found. Run: npm run extract:dev");
-        process.exit(1);
-    }
-    if (!fs.existsSync(prodDir)) {
-        console.error("❌ sql/prod/ not found. Run: npm run extract:prod");
-        process.exit(1);
-    }
     try {
-        const summary = (0, compare_1.compareDdl)(sqlRoot);
+        // Multi-environment comparison
+        if (options.envs) {
+            const envNames = options.envs.split(",").map((e) => e.trim());
+            if (envNames.length < 2) {
+                console.error("❌ --envs requires at least 2 environments");
+                process.exit(1);
+            }
+            // Verify all directories exist
+            for (const env of envNames) {
+                const dir = path.join(sqlRoot, env);
+                if (!fs.existsSync(dir)) {
+                    console.error(`❌ sql/${env}/ not found. Run: pg-ddl-extract --env ${env}`);
+                    process.exit(1);
+                }
+            }
+            const result = (0, compare_1.compareMultiEnv)(sqlRoot, envNames);
+            console.log((0, compare_1.formatMultiEnvReport)(result));
+            return;
+        }
+        // Standard two-environment comparison
+        const devDir = options.dev ? path.resolve(options.dev) : path.join(sqlRoot, "dev");
+        const prodDir = options.prod ? path.resolve(options.prod) : path.join(sqlRoot, "prod");
+        if (!fs.existsSync(devDir)) {
+            console.error("❌ sql/dev/ not found. Run: npm run extract:dev");
+            process.exit(1);
+        }
+        if (!fs.existsSync(prodDir)) {
+            console.error("❌ sql/prod/ not found. Run: npm run extract:prod");
+            process.exit(1);
+        }
+        const summary = options.dev || options.prod
+            ? (0, compare_1.compareDdlDirs)(devDir, prodDir)
+            : (0, compare_1.compareDdl)(sqlRoot);
         // Always print to console
         console.log((0, compare_1.formatConsoleReport)(summary));
         // Optionally save reports (markdown + HTML)

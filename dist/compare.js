@@ -34,6 +34,9 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.compareDdl = compareDdl;
+exports.compareDdlDirs = compareDdlDirs;
+exports.compareMultiEnv = compareMultiEnv;
+exports.formatMultiEnvReport = formatMultiEnvReport;
 exports.formatConsoleReport = formatConsoleReport;
 exports.formatMarkdownReport = formatMarkdownReport;
 exports.formatHtmlReport = formatHtmlReport;
@@ -263,6 +266,132 @@ function compareDdl(sqlRoot) {
         identical,
         items,
     };
+}
+// ─── Compare two arbitrary directories ────────────────────────────
+function compareDdlDirs(dir1, dir2) {
+    if (!fs.existsSync(dir1))
+        throw new Error(`Folder not found: ${dir1}`);
+    if (!fs.existsSync(dir2))
+        throw new Error(`Folder not found: ${dir2}`);
+    const allCategories = [...new Set([...getCategories(dir1), ...getCategories(dir2)])].sort();
+    const items = [];
+    let total1 = 0;
+    let total2 = 0;
+    let identical = 0;
+    for (const category of allCategories) {
+        const files1 = getSqlFiles(path.join(dir1, category));
+        const files2 = getSqlFiles(path.join(dir2, category));
+        total1 += files1.size;
+        total2 += files2.size;
+        const allObjects = [...new Set([...files1.keys(), ...files2.keys()])].sort();
+        for (const obj of allObjects) {
+            const in1 = files1.has(obj);
+            const in2 = files2.has(obj);
+            if (in1 && !in2) {
+                items.push({ category, object: obj.replace(".sql", ""), status: "only_dev", devFile: files1.get(obj) });
+            }
+            else if (!in1 && in2) {
+                items.push({ category, object: obj.replace(".sql", ""), status: "only_prod", prodFile: files2.get(obj) });
+            }
+            else if (in1 && in2) {
+                const hash1 = fileHash(files1.get(obj));
+                const hash2 = fileHash(files2.get(obj));
+                if (hash1 !== hash2) {
+                    items.push({
+                        category,
+                        object: obj.replace(".sql", ""),
+                        status: "modified",
+                        devFile: files1.get(obj),
+                        prodFile: files2.get(obj),
+                        diff: lineDiff(files1.get(obj), files2.get(obj)),
+                    });
+                }
+                else {
+                    identical++;
+                }
+            }
+        }
+    }
+    return {
+        total_dev: total1,
+        total_prod: total2,
+        only_dev: items.filter((i) => i.status === "only_dev").length,
+        only_prod: items.filter((i) => i.status === "only_prod").length,
+        modified: items.filter((i) => i.status === "modified").length,
+        identical,
+        items,
+    };
+}
+function compareMultiEnv(sqlRoot, envNames) {
+    const pairs = [];
+    for (let i = 0; i < envNames.length; i++) {
+        for (let j = i + 1; j < envNames.length; j++) {
+            const dir1 = path.join(sqlRoot, envNames[i]);
+            const dir2 = path.join(sqlRoot, envNames[j]);
+            const summary = compareDdlDirs(dir1, dir2);
+            pairs.push({
+                env1: envNames[i],
+                env2: envNames[j],
+                identical: summary.identical,
+                onlyFirst: summary.only_dev,
+                onlySecond: summary.only_prod,
+                modified: summary.modified,
+                total1: summary.total_dev,
+                total2: summary.total_prod,
+            });
+        }
+    }
+    return { envs: envNames, pairs };
+}
+function formatMultiEnvReport(result) {
+    const lines = [];
+    lines.push("═══════════════════════════════════════════════════════════");
+    lines.push("  Multi-Environment DDL Comparison");
+    lines.push(`  Environments: ${result.envs.join(", ")}`);
+    lines.push(`  Generated: ${new Date().toISOString().slice(0, 19)}`);
+    lines.push("═══════════════════════════════════════════════════════════");
+    lines.push("");
+    // Matrix header
+    const colWidth = 14;
+    const header = "".padEnd(colWidth) + result.envs.map((e) => e.padStart(colWidth)).join("");
+    lines.push(header);
+    lines.push("─".repeat(colWidth * (result.envs.length + 1)));
+    // Build diff matrix
+    const matrix = {};
+    for (const env of result.envs) {
+        matrix[env] = {};
+        matrix[env][env] = "—";
+    }
+    for (const pair of result.pairs) {
+        const total = pair.onlyFirst + pair.onlySecond + pair.modified;
+        const label = total === 0 ? "✅ sync" : `${total} diffs`;
+        matrix[pair.env1][pair.env2] = label;
+        matrix[pair.env2][pair.env1] = label;
+    }
+    for (const env1 of result.envs) {
+        const row = env1.padEnd(colWidth) + result.envs.map((env2) => (matrix[env1][env2] || "").padStart(colWidth)).join("");
+        lines.push(row);
+    }
+    lines.push("");
+    // Detailed pair comparisons
+    for (const pair of result.pairs) {
+        const totalDiffs = pair.onlyFirst + pair.onlySecond + pair.modified;
+        lines.push("───────────────────────────────────────────────────────────");
+        lines.push(`  ${pair.env1.toUpperCase()} vs ${pair.env2.toUpperCase()}`);
+        lines.push("───────────────────────────────────────────────────────────");
+        lines.push(`    ${pair.env1} objects: ${pair.total1}`);
+        lines.push(`    ${pair.env2} objects: ${pair.total2}`);
+        lines.push(`    ✅ Identical: ${pair.identical}`);
+        lines.push(`    🔄 Modified:  ${pair.modified}`);
+        lines.push(`    🟢 Only ${pair.env1}: ${pair.onlyFirst}`);
+        lines.push(`    🔴 Only ${pair.env2}: ${pair.onlySecond}`);
+        if (totalDiffs === 0) {
+            lines.push(`    🎉 Environments are in sync!`);
+        }
+        lines.push("");
+    }
+    lines.push("═══════════════════════════════════════════════════════════");
+    return lines.join("\n");
 }
 // ─── Report Formatters ────────────────────────────────────────────
 function formatConsoleReport(summary) {

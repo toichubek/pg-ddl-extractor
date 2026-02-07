@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.DataExtractor = exports.printLintReport = exports.SchemaLinter = exports.printDryRun = exports.printMigrationSummary = exports.formatRollbackSql = exports.formatMigrationSql = exports.saveRollback = exports.saveMigration = exports.generateRollback = exports.generateMigration = exports.formatHtmlReport = exports.formatMarkdownReport = exports.formatConsoleReport = exports.compareDdl = exports.createSshTunnel = exports.getSshConfig = exports.getDbConfig = exports.DdlExtractor = exports.SqlFileWriter = void 0;
+exports.DataExtractor = exports.printLintReport = exports.SchemaLinter = exports.printDryRun = exports.printMigrationSummary = exports.formatRollbackSql = exports.formatMigrationSql = exports.saveRollback = exports.saveMigration = exports.generateRollback = exports.generateMigration = exports.formatMultiEnvReport = exports.formatHtmlReport = exports.formatMarkdownReport = exports.formatConsoleReport = exports.compareMultiEnv = exports.compareDdlDirs = exports.compareDdl = exports.createSshTunnel = exports.getSshConfig = exports.getDbConfig = exports.DdlExtractor = exports.SqlFileWriter = void 0;
 // Public API exports
 var writer_1 = require("./writer");
 Object.defineProperty(exports, "SqlFileWriter", { enumerable: true, get: function () { return writer_1.SqlFileWriter; } });
@@ -13,9 +13,12 @@ Object.defineProperty(exports, "getSshConfig", { enumerable: true, get: function
 Object.defineProperty(exports, "createSshTunnel", { enumerable: true, get: function () { return tunnel_1.createSshTunnel; } });
 var compare_1 = require("./compare");
 Object.defineProperty(exports, "compareDdl", { enumerable: true, get: function () { return compare_1.compareDdl; } });
+Object.defineProperty(exports, "compareDdlDirs", { enumerable: true, get: function () { return compare_1.compareDdlDirs; } });
+Object.defineProperty(exports, "compareMultiEnv", { enumerable: true, get: function () { return compare_1.compareMultiEnv; } });
 Object.defineProperty(exports, "formatConsoleReport", { enumerable: true, get: function () { return compare_1.formatConsoleReport; } });
 Object.defineProperty(exports, "formatMarkdownReport", { enumerable: true, get: function () { return compare_1.formatMarkdownReport; } });
 Object.defineProperty(exports, "formatHtmlReport", { enumerable: true, get: function () { return compare_1.formatHtmlReport; } });
+Object.defineProperty(exports, "formatMultiEnvReport", { enumerable: true, get: function () { return compare_1.formatMultiEnvReport; } });
 var migration_generator_1 = require("./migration-generator");
 Object.defineProperty(exports, "generateMigration", { enumerable: true, get: function () { return migration_generator_1.generateMigration; } });
 Object.defineProperty(exports, "generateRollback", { enumerable: true, get: function () { return migration_generator_1.generateRollback; } });
