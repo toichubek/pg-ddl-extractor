@@ -97,6 +97,14 @@ interface IndexJson {
   definition: string;
 }
 
+// ─── Query row types ──────────────────────────────────────────
+interface SchemaRow { schema_name: string }
+interface SequenceRow { schema_name: string; sequence_name: string; start_value: string; minimum_value: string; maximum_value: string; increment: string; cycle_option: string }
+interface ColumnCommentRow { column_name: string; description: string }
+interface ColumnTypeRow { data_type: string; udt_name: string; character_maximum_length: number | null; numeric_precision: number | null; numeric_scale: number | null; column_name: string; is_nullable: string; column_default: string | null }
+interface NamedDefRow { schema_name: string; view_name?: string; function_name?: string; index_name?: string; definition: string }
+interface TriggerRow { schema_name: string; trigger_name: string; event_object_schema: string; event_object_table: string; action_statement: string; action_timing: string; event_manipulation: string; action_orientation: string }
+
 export class JsonExporter {
   private client: Client;
   private filters: ExtractionFilters;
@@ -190,8 +198,8 @@ export class JsonExporter {
       ORDER BY nspname;
     `);
     return rows
-      .filter((r: any) => this.shouldIncludeSchema(r.schema_name))
-      .map((r: any) => r.schema_name);
+      .filter((r: SchemaRow) => this.shouldIncludeSchema(r.schema_name))
+      .map((r: SchemaRow) => r.schema_name);
   }
 
   private async extractTypes(): Promise<TypeJson[]> {
@@ -264,8 +272,8 @@ export class JsonExporter {
     `);
 
     return rows
-      .filter((r: any) => this.shouldIncludeSchema(r.schema_name))
-      .map((r: any) => ({
+      .filter((r: SequenceRow) => this.shouldIncludeSchema(r.schema_name))
+      .map((r: SequenceRow) => ({
         schema: r.schema_name,
         name: r.sequence_name,
         startValue: r.start_value,
@@ -320,9 +328,9 @@ export class JsonExporter {
       [schema, table]
     );
 
-    const commentMap = new Map(comments.map((c: any) => [c.column_name, c.description]));
+    const commentMap = new Map(comments.map((c: ColumnCommentRow) => [c.column_name, c.description]));
 
-    const colDefs: ColumnJson[] = columns.map((col: any) => ({
+    const colDefs: ColumnJson[] = columns.map((col: ColumnTypeRow) => ({
       name: col.column_name,
       type: this.buildColumnType(col),
       nullable: col.is_nullable === "YES",
@@ -455,7 +463,7 @@ export class JsonExporter {
     };
   }
 
-  private buildColumnType(col: any): string {
+  private buildColumnType(col: ColumnTypeRow): string {
     const { data_type, udt_name, character_maximum_length, numeric_precision, numeric_scale } = col;
     if (data_type === "ARRAY") return `${udt_name.replace(/^_/, "")}[]`;
     if (data_type === "USER-DEFINED") return udt_name;
@@ -479,10 +487,10 @@ export class JsonExporter {
       ORDER BY schemaname, viewname;
     `);
     return rows
-      .filter((r: any) => this.shouldIncludeSchema(r.schema_name))
-      .map((r: any) => ({
+      .filter((r: NamedDefRow) => this.shouldIncludeSchema(r.schema_name))
+      .map((r: NamedDefRow) => ({
         schema: r.schema_name,
-        name: r.view_name,
+        name: r.view_name!,
         definition: r.definition.trim(),
       }));
   }
@@ -495,10 +503,10 @@ export class JsonExporter {
       ORDER BY schemaname, matviewname;
     `);
     return rows
-      .filter((r: any) => this.shouldIncludeSchema(r.schema_name))
-      .map((r: any) => ({
+      .filter((r: NamedDefRow) => this.shouldIncludeSchema(r.schema_name))
+      .map((r: NamedDefRow) => ({
         schema: r.schema_name,
-        name: r.view_name,
+        name: r.view_name!,
         definition: r.definition.trim(),
       }));
   }
@@ -515,10 +523,10 @@ export class JsonExporter {
       ORDER BY n.nspname, p.proname;
     `);
     return rows
-      .filter((r: any) => this.shouldIncludeSchema(r.schema_name))
-      .map((r: any) => ({
+      .filter((r: NamedDefRow) => this.shouldIncludeSchema(r.schema_name))
+      .map((r: NamedDefRow) => ({
         schema: r.schema_name,
-        name: r.function_name,
+        name: r.function_name!,
         definition: r.definition,
       }));
   }
@@ -534,7 +542,7 @@ export class JsonExporter {
       ORDER BY trigger_schema, trigger_name;
     `);
 
-    const grouped = new Map<string, any[]>();
+    const grouped = new Map<string, TriggerRow[]>();
     for (const row of rows) {
       if (!this.shouldIncludeSchema(row.schema_name)) continue;
       const key = `${row.schema_name}.${row.trigger_name}`;
@@ -550,7 +558,7 @@ export class JsonExporter {
         name: first.trigger_name,
         table: `${first.event_object_schema}.${first.event_object_table}`,
         timing: first.action_timing,
-        events: events.map((e: any) => e.event_manipulation),
+        events: events.map((e) => e.event_manipulation),
         orientation: first.action_orientation,
         action: first.action_statement,
       });
@@ -571,10 +579,10 @@ export class JsonExporter {
       ORDER BY schemaname, indexname;
     `);
     return rows
-      .filter((r: any) => this.shouldIncludeSchema(r.schema_name))
-      .map((r: any) => ({
+      .filter((r: NamedDefRow) => this.shouldIncludeSchema(r.schema_name))
+      .map((r: NamedDefRow) => ({
         schema: r.schema_name,
-        name: r.index_name,
+        name: r.index_name!,
         definition: r.definition,
       }));
   }

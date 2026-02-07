@@ -87,7 +87,7 @@ async function generateSizeReport(client: Client, top: number): Promise<SizeRepo
   return {
     database: dbInfo[0].db_name,
     totalSize: dbInfo[0].db_size,
-    tables: tables.map((t: any) => ({
+    tables: tables.map((t: { schema: string; table_name: string; total_size: string; total_bytes: string; data_size: string; index_size: string; toast_size: string; row_estimate: string }) => ({
       schema: t.schema,
       table: t.table_name,
       totalSize: t.total_size,
@@ -97,13 +97,13 @@ async function generateSizeReport(client: Client, top: number): Promise<SizeRepo
       toastSize: t.toast_size,
       rowEstimate: parseInt(t.row_estimate, 10),
     })),
-    schemas: schemas.map((s: any) => ({
+    schemas: schemas.map((s: { schema: string; total_size: string; total_bytes: string; table_count: string }) => ({
       schema: s.schema,
       totalSize: s.total_size,
       totalBytes: parseInt(s.total_bytes, 10),
       tableCount: parseInt(s.table_count, 10),
     })),
-    largestIndexes: indexes.map((i: any) => ({
+    largestIndexes: indexes.map((i: { index_name: string; table_name: string; idx_size: string; idx_bytes: string }) => ({
       name: i.index_name,
       table: i.table_name,
       size: i.idx_size,
@@ -190,6 +190,10 @@ async function main(): Promise<void> {
 
   await runWithConnection(options, async (client) => {
     const top = parseInt(options.top || "20", 10);
+    if (isNaN(top) || top < 1 || top > 1000) {
+      console.error(`❌ Invalid --top: "${options.top}". Must be between 1 and 1000`);
+      process.exit(1);
+    }
     const report = await generateSizeReport(client, top);
 
     if (options.json) {

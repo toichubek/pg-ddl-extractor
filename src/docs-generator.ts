@@ -36,6 +36,15 @@ interface ColumnInfo {
   isFK: boolean;
 }
 
+// ─── Query row types ──────────────────────────────────────────
+interface DocsColumnRow {
+  column_name: string; data_type: string; udt_name: string;
+  character_maximum_length: number | null; is_nullable: string;
+  column_default: string | null; comment: string | null;
+  is_pk: boolean; is_fk: boolean;
+}
+interface DocsFKRow { columns: string; ref_table: string; ref_columns: string }
+
 const EXCLUDED = `('pg_catalog', 'information_schema', 'pg_toast')`;
 
 // ─── Documentation Generator ──────────────────────────────────
@@ -83,7 +92,7 @@ export class DocsGenerator {
       WHERE nspname NOT LIKE 'pg_%' AND nspname != 'information_schema'
       ORDER BY nspname
     `);
-    return rows.map((r: any) => r.nspname);
+    return rows.map((r: { nspname: string }) => r.nspname);
   }
 
   private async getTablesInfo(schema: string): Promise<TableInfo[]> {
@@ -151,7 +160,7 @@ export class DocsGenerator {
       [schema, table]
     );
 
-    return rows.map((r: any) => {
+    return rows.map((r: DocsColumnRow) => {
       let type = r.data_type;
       if (r.data_type === "USER-DEFINED") type = r.udt_name;
       if (r.character_maximum_length) type += `(${r.character_maximum_length})`;
@@ -173,7 +182,7 @@ export class DocsGenerator {
       `SELECT indexname, indexdef FROM pg_indexes WHERE schemaname = $1 AND tablename = $2 ORDER BY indexname`,
       [schema, table]
     );
-    return rows.map((r: any) => r.indexdef);
+    return rows.map((r: { indexdef: string }) => r.indexdef);
   }
 
   private async getForeignKeys(schema: string, table: string): Promise<string[]> {
@@ -192,7 +201,7 @@ export class DocsGenerator {
       GROUP BY tc.constraint_name, ccu.table_schema, ccu.table_name`,
       [schema, table]
     );
-    return rows.map((r: any) => `${r.columns} → ${r.ref_table}(${r.ref_columns})`);
+    return rows.map((r: DocsFKRow) => `${r.columns} → ${r.ref_table}(${r.ref_columns})`);
   }
 
   private async getTableComment(schema: string, table: string): Promise<string | null> {
@@ -226,7 +235,7 @@ export class DocsGenerator {
       `SELECT viewname FROM pg_views WHERE schemaname = $1 ORDER BY viewname`,
       [schema]
     );
-    return rows.map((r: any) => r.viewname);
+    return rows.map((r: { viewname: string }) => r.viewname);
   }
 
   private async getFunctions(schema: string): Promise<string[]> {
@@ -236,7 +245,7 @@ export class DocsGenerator {
        WHERE n.nspname = $1 ORDER BY p.proname`,
       [schema]
     );
-    return rows.map((r: any) => r.func_sig);
+    return rows.map((r: { func_sig: string }) => r.func_sig);
   }
 }
 

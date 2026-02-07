@@ -10,6 +10,25 @@ interface DdlObject {
   ddl: string;
 }
 
+interface ColumnTypeRow {
+  data_type: string;
+  udt_name: string;
+  character_maximum_length: number | null;
+  numeric_precision: number | null;
+  numeric_scale: number | null;
+}
+
+interface TriggerRow {
+  schema_name: string;
+  trigger_name: string;
+  event_object_schema: string;
+  event_object_table: string;
+  action_statement: string;
+  action_timing: string;
+  event_manipulation: string;
+  action_orientation: string;
+}
+
 export interface ExtractionFilters {
   includeSchemas?: string[];
   includeTables?: string[];
@@ -398,7 +417,7 @@ export class DdlExtractor {
     return parts.join("\n");
   }
 
-  private buildColumnType(col: any): string {
+  private buildColumnType(col: ColumnTypeRow): string {
     const { data_type, udt_name, character_maximum_length, numeric_precision, numeric_scale } = col;
 
     if (data_type === "ARRAY") return `${udt_name.replace(/^_/, "")}[]`;
@@ -518,7 +537,7 @@ export class DdlExtractor {
     `);
 
     // Group by trigger name (one trigger can fire on multiple events)
-    const grouped = new Map<string, any[]>();
+    const grouped = new Map<string, TriggerRow[]>();
     for (const row of rows) {
       if (!this.shouldIncludeSchema(row.schema_name)) {
         continue;
@@ -530,7 +549,7 @@ export class DdlExtractor {
 
     for (const [key, events] of grouped) {
       const first = events[0];
-      const eventList = events.map((e: any) => e.event_manipulation).join(" OR ");
+      const eventList = events.map((e) => e.event_manipulation).join(" OR ");
       const ddl = [
         `CREATE TRIGGER ${first.trigger_name}`,
         `    ${first.action_timing} ${eventList}`,

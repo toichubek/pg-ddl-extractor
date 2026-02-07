@@ -53,8 +53,8 @@ async function buildDepGraph(client: Client): Promise<DepGraph> {
   `);
 
   return {
-    tables: tables.map((t: any) => t.full_name),
-    dependencies: fks.map((fk: any) => ({
+    tables: tables.map((t: { full_name: string }) => t.full_name),
+    dependencies: fks.map((fk: { from_table: string; to_table: string; constraint_name: string; columns: string; ref_columns: string }) => ({
       from: fk.from_table,
       to: fk.to_table,
       constraint: fk.constraint_name,

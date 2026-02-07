@@ -33,7 +33,7 @@ async function validateAgainstDb(
     WHERE schemaname NOT IN ('pg_catalog', 'information_schema', 'pg_toast')
     ORDER BY schemaname, tablename;
   `);
-  const liveTableSet = new Set(liveTables.map((t: any) => t.full_name));
+  const liveTableSet = new Set(liveTables.map((t: { full_name: string }) => t.full_name));
 
   // Check extracted tables dir
   const tablesDir = path.join(sqlDir, "tables");
@@ -74,7 +74,7 @@ async function validateAgainstDb(
     JOIN pg_namespace n ON n.oid = p.pronamespace
     WHERE n.nspname NOT IN ('pg_catalog', 'information_schema', 'pg_toast');
   `);
-  const liveFuncSet = new Set(liveFuncs.map((f: any) => f.full_name));
+  const liveFuncSet = new Set(liveFuncs.map((f: { full_name: string }) => f.full_name));
 
   const funcsDir = path.join(sqlDir, "functions");
   if (fs.existsSync(funcsDir)) {

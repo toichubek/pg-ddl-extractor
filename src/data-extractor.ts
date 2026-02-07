@@ -79,7 +79,7 @@ export class DataExtractor {
 
     if (columns.length === 0) return 0;
 
-    const colNames = columns.map((c: any) => c.column_name);
+    const colNames = columns.map((c: { column_name: string }) => c.column_name);
 
     // Fetch data
     const { rows } = await this.client.query(

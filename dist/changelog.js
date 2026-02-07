@@ -209,6 +209,10 @@ function main() {
         process.exit(1);
     }
     const limit = parseInt(options.limit || "20", 10);
+    if (isNaN(limit) || limit < 1 || limit > 1000) {
+        console.error(`❌ Invalid --limit: "${options.limit}". Must be between 1 and 1000`);
+        process.exit(1);
+    }
     const entries = getGitLog(searchDir, limit);
     let output;
     if (options.markdown) {

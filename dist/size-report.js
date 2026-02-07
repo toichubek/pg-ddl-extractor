@@ -174,6 +174,10 @@ async function main() {
     const options = parseArgs();
     await (0, cli_utils_1.runWithConnection)(options, async (client) => {
         const top = parseInt(options.top || "20", 10);
+        if (isNaN(top) || top < 1 || top > 1000) {
+            console.error(`❌ Invalid --top: "${options.top}". Must be between 1 and 1000`);
+            process.exit(1);
+        }
         const report = await generateSizeReport(client, top);
         if (options.json) {
             const jsonOutput = JSON.stringify(report, null, 2);

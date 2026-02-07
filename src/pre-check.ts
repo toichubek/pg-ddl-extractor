@@ -229,10 +229,10 @@ export class PreMigrationChecker {
         };
       }
 
-      const bloated = rows.filter((r: any) => parseFloat(r.dead_pct) > 20);
+      const bloated = rows.filter((r: { dead_pct: string }) => parseFloat(r.dead_pct) > 20);
       if (bloated.length > 0) {
         const detail = bloated
-          .map((r: any) => `${r.table_name}: ${r.n_dead_tup} dead tuples (${r.dead_pct}%)`)
+          .map((r: { table_name: string; n_dead_tup: number; dead_pct: string }) => `${r.table_name}: ${r.n_dead_tup} dead tuples (${r.dead_pct}%)`)
           .join(", ");
         return {
           name: "table-bloat",
