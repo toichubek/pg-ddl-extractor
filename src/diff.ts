@@ -1,7 +1,11 @@
 import * as fs from "fs";
 import * as path from "path";
+import * as dotenv from "dotenv";
 import { program } from "commander";
 import { compareDdl, formatConsoleReport, formatMarkdownReport, formatHtmlReport } from "./compare";
+
+// ─── Load .env ────────────────────────────────────────────────────
+dotenv.config();
 
 // ─── Parse CLI args ───────────────────────────────────────────────
 interface CliOptions {

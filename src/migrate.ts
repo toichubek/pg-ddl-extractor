@@ -1,7 +1,11 @@
 import * as fs from "fs";
 import * as path from "path";
+import * as dotenv from "dotenv";
 import { program } from "commander";
 import { generateMigration, saveMigration, printMigrationSummary } from "./migration-generator";
+
+// ─── Load .env ────────────────────────────────────────────────────
+dotenv.config();
 
 // ─── Parse CLI args ───────────────────────────────────────────────
 interface CliOptions {

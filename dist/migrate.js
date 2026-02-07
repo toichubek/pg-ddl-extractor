@@ -35,8 +35,11 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
+const dotenv = __importStar(require("dotenv"));
 const commander_1 = require("commander");
 const migration_generator_1 = require("./migration-generator");
+// ─── Load .env ────────────────────────────────────────────────────
+dotenv.config();
 function parseArgs() {
     commander_1.program
         .name("pg-ddl-migrate")
