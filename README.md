@@ -151,6 +151,27 @@ Generated documentation includes:
 - Views and functions listing
 - Optional Mermaid ERD diagram
 
+## Schema Changelog
+
+Generate a changelog from Git history of extracted SQL files:
+
+```bash
+# Show recent schema changes
+pg-ddl-changelog
+
+# Show changes for specific environment
+pg-ddl-changelog --env dev
+
+# Limit to last 10 commits
+pg-ddl-changelog --limit 10
+
+# Export as Markdown
+pg-ddl-changelog --markdown --output CHANGELOG.md
+
+# Custom SQL directory
+pg-ddl-changelog --sql-dir /path/to/sql
+```
+
 ## Schema Validation
 
 Validate schema consistency and conventions:

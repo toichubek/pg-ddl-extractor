@@ -14,7 +14,8 @@
     "pg-ddl-stats": "dist/cli/stats.js",
     "pg-ddl-search": "dist/cli/search.js",
     "pg-ddl-deps": "dist/cli/deps.js",
-    "pg-ddl-validate": "dist/cli/validate.js"
+    "pg-ddl-validate": "dist/cli/validate.js",
+    "pg-ddl-changelog": "dist/cli/changelog.js"
   },
   "files": [
     "dist",
