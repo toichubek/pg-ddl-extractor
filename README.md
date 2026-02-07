@@ -226,6 +226,7 @@ All commands support CLI flags to override environment variables:
 
 **`pg-ddl-diff` Options:**
 - `--report` - Generate markdown and HTML reports
+- `--side-by-side` - Generate side-by-side HTML diff report with full source
 - `--sql-dir <path>` - Path to SQL directory - default: `./sql`
 - `--dev <path>` - Path to dev schema directory
 - `--prod <path>` - Path to prod schema directory
@@ -293,6 +294,9 @@ pg-ddl-diff
 
 # Compare and save reports
 pg-ddl-diff --report
+
+# Side-by-side HTML diff with full source code
+pg-ddl-diff --side-by-side
 
 # Compare with custom directories
 pg-ddl-diff --dev /path/to/dev --prod /path/to/prod

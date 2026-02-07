@@ -10,6 +10,7 @@ export {
   formatConsoleReport,
   formatMarkdownReport,
   formatHtmlReport,
+  formatSideBySideHtml,
   formatMultiEnvReport,
 } from "./compare";
 export {
