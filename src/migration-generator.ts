@@ -22,6 +22,20 @@ interface Migration {
   };
 }
 
+interface RollbackCommand {
+  category: string;
+  object: string;
+  sql: string;
+  priority: number;
+  comment: string;
+}
+
+interface Rollback {
+  timestamp: string;
+  commands: RollbackCommand[];
+  migrationFile: string;
+}
+
 // ─── Priority Order (execute from low to high) ───────────────
 
 const CATEGORY_PRIORITY: Record<string, number> = {
@@ -208,6 +222,161 @@ export function generateMigration(sqlRoot: string): Migration {
   };
 }
 
+// ─── Rollback Generator ──────────────────────────────────
+
+export function generateRollback(sqlRoot: string, migration: Migration): Rollback {
+  const summary = compareDdl(sqlRoot);
+  const commands: RollbackCommand[] = [];
+
+  for (const item of summary.items) {
+    const categoryPriority = CATEGORY_PRIORITY[item.category] || 99;
+
+    if (item.status === "only_dev") {
+      // Migration CREATEs this → Rollback DROPs it
+      const sql = generateDropSql(item.category, item.object);
+      // Drop in reverse order of creation
+      const priority = (100 - categoryPriority) * 100 + 10;
+
+      commands.push({
+        category: item.category,
+        object: item.object,
+        sql,
+        priority,
+        comment: `Rollback: Drop ${item.category.slice(0, -1)} ${item.object} (was created by migration)`,
+      });
+    } else if (item.status === "only_prod") {
+      // Migration DROPs this → Rollback restores it from prod
+      if (item.prodFile) {
+        const sql = generateCreateSql(item.category, item.object, item.prodFile);
+        const priority = categoryPriority * 100 + 20;
+
+        commands.push({
+          category: item.category,
+          object: item.object,
+          sql,
+          priority,
+          comment: `Rollback: Restore ${item.category.slice(0, -1)} ${item.object} (was dropped by migration)`,
+        });
+      }
+    } else if (item.status === "modified") {
+      // Migration ALTERs this → Rollback restores old version from prod
+      if (item.prodFile) {
+        const sql = generateRollbackAlterSql(item.category, item.object, item.prodFile);
+        const priority = categoryPriority * 100 + 30;
+
+        commands.push({
+          category: item.category,
+          object: item.object,
+          sql,
+          priority,
+          comment: `Rollback: Restore ${item.category.slice(0, -1)} ${item.object} to PROD version`,
+        });
+      }
+    }
+  }
+
+  // Sort commands by priority
+  commands.sort((a, b) => a.priority - b.priority);
+
+  return {
+    timestamp: migration.timestamp,
+    commands,
+    migrationFile: `${migration.timestamp}_dev_to_prod.sql`,
+  };
+}
+
+function generateRollbackAlterSql(category: string, object: string, prodFile: string): string {
+  // For functions and views, simply restore the prod version
+  if (category === "functions" || category === "views") {
+    const content = fs.readFileSync(prodFile, "utf-8");
+    return stripHeader(content);
+  }
+
+  // For tables, we can't easily rollback structure changes
+  if (category === "tables") {
+    const prodDdl = stripHeader(fs.readFileSync(prodFile, "utf-8"));
+    return `-- ⚠️ Table rollback: ${object}
+-- Review and adjust the following manually to restore PROD state
+-- You may need to: ALTER TABLE, DROP/ADD columns, etc.
+
+-- Original PROD definition:
+${prodDdl}`;
+  }
+
+  // For other categories, drop and recreate from prod
+  const drop = generateDropSql(category, object);
+  const create = generateCreateSql(category, object, prodFile);
+  return `${drop}\n\n${create}`;
+}
+
+// ─── Format Rollback File ────────────────────────────────
+
+export function formatRollbackSql(rollback: Rollback): string {
+  const lines: string[] = [];
+
+  lines.push("-- ═══════════════════════════════════════════════════════════");
+  lines.push("-- ROLLBACK: PROD → DEV (Undo Migration)");
+  lines.push(`-- Generated: ${new Date().toISOString()}`);
+  lines.push(`-- Undoes migration: ${rollback.migrationFile}`);
+  lines.push("-- ═══════════════════════════════════════════════════════════");
+  lines.push("");
+  lines.push("-- ⚠️  IMPORTANT:");
+  lines.push("--   This rollback script reverses the migration above.");
+  lines.push("--   Review carefully before running - especially table modifications.");
+  lines.push("--   Data changes made after migration will NOT be rolled back.");
+  lines.push("");
+  lines.push("-- ═══════════════════════════════════════════════════════════");
+  lines.push("");
+  lines.push("BEGIN;");
+  lines.push("");
+
+  if (rollback.commands.length === 0) {
+    lines.push("-- 🎉 No rollback needed - migration had no changes!");
+  } else {
+    let currentCategory = "";
+
+    for (const cmd of rollback.commands) {
+      if (cmd.category !== currentCategory) {
+        if (currentCategory !== "") {
+          lines.push("");
+        }
+        lines.push(`-- ─────────────────────────────────────────────────────────`);
+        lines.push(`-- ${cmd.category.toUpperCase()}`);
+        lines.push(`-- ─────────────────────────────────────────────────────────`);
+        lines.push("");
+        currentCategory = cmd.category;
+      }
+
+      lines.push(`-- ${cmd.comment}`);
+      lines.push(cmd.sql);
+      lines.push("");
+    }
+  }
+
+  lines.push("COMMIT;");
+  lines.push("");
+  lines.push("-- ═══════════════════════════════════════════════════════════");
+  lines.push("-- Rollback Complete");
+  lines.push("-- ═══════════════════════════════════════════════════════════");
+
+  return lines.join("\n");
+}
+
+// ─── Save Rollback ───────────────────────────────────────
+
+export function saveRollback(sqlRoot: string, rollback: Rollback): string {
+  const migrationsDir = path.join(sqlRoot, "migrations");
+  fs.mkdirSync(migrationsDir, { recursive: true });
+
+  const filename = `${rollback.timestamp}_rollback.sql`;
+  const filepath = path.join(migrationsDir, filename);
+
+  const content = formatRollbackSql(rollback);
+  fs.writeFileSync(filepath, content, "utf-8");
+
+  return filepath;
+}
+
 // ─── Format Migration File ────────────────────────────────────
 
 export function formatMigrationSql(migration: Migration): string {
@@ -284,12 +453,19 @@ export function saveMigration(sqlRoot: string, migration: Migration): string {
 
 // ─── CLI Report ───────────────────────────────────────────────
 
-export function printMigrationSummary(migration: Migration, filepath: string): void {
+export function printMigrationSummary(
+  migration: Migration,
+  filepath: string,
+  rollbackPath?: string
+): void {
   console.log("═══════════════════════════════════════════════════════════");
   console.log("  Migration Plan Generated");
   console.log("═══════════════════════════════════════════════════════════");
   console.log("");
-  console.log(`  📄 File: ${filepath}`);
+  console.log(`  📄 Migration: ${filepath}`);
+  if (rollbackPath) {
+    console.log(`  ↩️  Rollback:  ${rollbackPath}`);
+  }
   console.log("");
   console.log("  Summary:");
   console.log(`    🟢 Creates: ${migration.summary.creates}`);
@@ -301,9 +477,19 @@ export function printMigrationSummary(migration: Migration, filepath: string): v
   if (migration.commands.length > 0) {
     console.log("  ⚠️  Next Steps:");
     console.log("    1. Review the migration file carefully");
-    console.log("    2. Test on staging environment");
-    console.log("    3. Backup production database");
-    console.log("    4. Run: psql -d your_db -f " + path.basename(filepath));
+    if (rollbackPath) {
+      console.log("    2. Review the rollback file");
+      console.log("    3. Test on staging environment");
+      console.log("    4. Backup production database");
+      console.log("    5. Run: psql -d your_db -f " + path.basename(filepath));
+      console.log("");
+      console.log("  ↩️  To rollback:");
+      console.log("       psql -d your_db -f " + path.basename(rollbackPath));
+    } else {
+      console.log("    2. Test on staging environment");
+      console.log("    3. Backup production database");
+      console.log("    4. Run: psql -d your_db -f " + path.basename(filepath));
+    }
     console.log("");
   } else {
     console.log("  🎉 DEV and PROD are in sync - no migration needed!");

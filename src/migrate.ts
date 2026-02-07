@@ -2,7 +2,13 @@ import * as fs from "fs";
 import * as path from "path";
 import * as dotenv from "dotenv";
 import { program } from "commander";
-import { generateMigration, saveMigration, printMigrationSummary } from "./migration-generator";
+import {
+  generateMigration,
+  generateRollback,
+  saveMigration,
+  saveRollback,
+  printMigrationSummary,
+} from "./migration-generator";
 
 // ─── Load .env ────────────────────────────────────────────────────
 dotenv.config();
@@ -13,6 +19,7 @@ interface CliOptions {
   dev?: string;
   prod?: string;
   output?: string;
+  withRollback?: boolean;
 }
 
 function parseArgs(): CliOptions {
@@ -24,6 +31,7 @@ function parseArgs(): CliOptions {
     .option("--dev <path>", "Path to dev schema directory")
     .option("--prod <path>", "Path to prod schema directory")
     .option("--output <path>", "Output directory for migration files")
+    .option("--with-rollback", "Generate rollback script alongside migration")
     .parse(process.argv);
 
   return program.opts<CliOptions>();
@@ -64,11 +72,18 @@ function main(): void {
     // Generate migration plan
     const migration = generateMigration(sqlRoot);
 
-    // Save to file
+    // Save migration to file
     const filepath = saveMigration(sqlRoot, migration);
 
+    // Generate and save rollback if requested
+    let rollbackPath: string | undefined;
+    if (options.withRollback) {
+      const rollback = generateRollback(sqlRoot, migration);
+      rollbackPath = saveRollback(sqlRoot, rollback);
+    }
+
     // Print summary
-    printMigrationSummary(migration, filepath);
+    printMigrationSummary(migration, filepath, rollbackPath);
   } catch (err: any) {
     console.error(`❌ ${err.message}`);
     process.exit(1);

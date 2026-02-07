@@ -49,6 +49,7 @@ function parseArgs() {
         .option("--dev <path>", "Path to dev schema directory")
         .option("--prod <path>", "Path to prod schema directory")
         .option("--output <path>", "Output directory for migration files")
+        .option("--with-rollback", "Generate rollback script alongside migration")
         .parse(process.argv);
     return commander_1.program.opts();
 }
@@ -80,10 +81,16 @@ function main() {
     try {
         // Generate migration plan
         const migration = (0, migration_generator_1.generateMigration)(sqlRoot);
-        // Save to file
+        // Save migration to file
         const filepath = (0, migration_generator_1.saveMigration)(sqlRoot, migration);
+        // Generate and save rollback if requested
+        let rollbackPath;
+        if (options.withRollback) {
+            const rollback = (0, migration_generator_1.generateRollback)(sqlRoot, migration);
+            rollbackPath = (0, migration_generator_1.saveRollback)(sqlRoot, rollback);
+        }
         // Print summary
-        (0, migration_generator_1.printMigrationSummary)(migration, filepath);
+        (0, migration_generator_1.printMigrationSummary)(migration, filepath, rollbackPath);
     }
     catch (err) {
         console.error(`❌ ${err.message}`);

@@ -23,6 +23,7 @@
     "diff": "ts-node src/diff.ts",
     "diff:report": "ts-node src/diff.ts --report",
     "migrate": "ts-node src/migrate.ts",
+    "migrate:rollback": "ts-node src/migrate.ts --with-rollback",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
     "format": "prettier --write \"src/**/*.ts\"",
