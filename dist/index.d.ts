@@ -6,5 +6,6 @@ export { compareDdl, compareDdlDirs, compareMultiEnv, formatConsoleReport, forma
 export { generateMigration, generateRollback, saveMigration, saveRollback, formatMigrationSql, formatRollbackSql, printMigrationSummary, printDryRun, } from "./migration-generator";
 export { SchemaLinter, printLintReport } from "./linter";
 export { DataExtractor } from "./data-extractor";
+export { DocsGenerator, formatDocsMarkdown, formatDocsMermaid } from "./docs-generator";
 export type { Client } from "pg";
 export type { LintResult, LintIssue, LintSeverity } from "./linter";

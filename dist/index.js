@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.DataExtractor = exports.printLintReport = exports.SchemaLinter = exports.printDryRun = exports.printMigrationSummary = exports.formatRollbackSql = exports.formatMigrationSql = exports.saveRollback = exports.saveMigration = exports.generateRollback = exports.generateMigration = exports.formatMultiEnvReport = exports.formatHtmlReport = exports.formatMarkdownReport = exports.formatConsoleReport = exports.compareMultiEnv = exports.compareDdlDirs = exports.compareDdl = exports.createSshTunnel = exports.getSshConfig = exports.getDbConfig = exports.DdlExtractor = exports.SqlFileWriter = void 0;
+exports.formatDocsMermaid = exports.formatDocsMarkdown = exports.DocsGenerator = exports.DataExtractor = exports.printLintReport = exports.SchemaLinter = exports.printDryRun = exports.printMigrationSummary = exports.formatRollbackSql = exports.formatMigrationSql = exports.saveRollback = exports.saveMigration = exports.generateRollback = exports.generateMigration = exports.formatMultiEnvReport = exports.formatHtmlReport = exports.formatMarkdownReport = exports.formatConsoleReport = exports.compareMultiEnv = exports.compareDdlDirs = exports.compareDdl = exports.createSshTunnel = exports.getSshConfig = exports.getDbConfig = exports.DdlExtractor = exports.SqlFileWriter = void 0;
 // Public API exports
 var writer_1 = require("./writer");
 Object.defineProperty(exports, "SqlFileWriter", { enumerable: true, get: function () { return writer_1.SqlFileWriter; } });
@@ -33,3 +33,7 @@ Object.defineProperty(exports, "SchemaLinter", { enumerable: true, get: function
 Object.defineProperty(exports, "printLintReport", { enumerable: true, get: function () { return linter_1.printLintReport; } });
 var data_extractor_1 = require("./data-extractor");
 Object.defineProperty(exports, "DataExtractor", { enumerable: true, get: function () { return data_extractor_1.DataExtractor; } });
+var docs_generator_1 = require("./docs-generator");
+Object.defineProperty(exports, "DocsGenerator", { enumerable: true, get: function () { return docs_generator_1.DocsGenerator; } });
+Object.defineProperty(exports, "formatDocsMarkdown", { enumerable: true, get: function () { return docs_generator_1.formatDocsMarkdown; } });
+Object.defineProperty(exports, "formatDocsMermaid", { enumerable: true, get: function () { return docs_generator_1.formatDocsMermaid; } });

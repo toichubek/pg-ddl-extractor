@@ -124,6 +124,33 @@ Watch mode:
 - Shows periodic heartbeat messages every 10 checks
 - Press `Ctrl+C` to stop gracefully
 
+## Schema Documentation
+
+Auto-generate Markdown documentation from your database schema:
+
+```bash
+# Generate docs for DEV
+pg-ddl-docs --env dev
+
+# Generate docs with ERD diagram (Mermaid)
+pg-ddl-docs --env dev --diagram
+
+# Custom output directory
+pg-ddl-docs --env dev --output ./docs
+
+# Direct connection
+pg-ddl-docs --host localhost --database mydb --user postgres --diagram
+```
+
+Generated documentation includes:
+- Table of contents with links
+- Column details (type, nullable, default, PK/FK, comments)
+- Table statistics (row estimate, size)
+- Foreign key relationships
+- Index definitions
+- Views and functions listing
+- Optional Mermaid ERD diagram
+
 ## Setup
 
 ```bash

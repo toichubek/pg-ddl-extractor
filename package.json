@@ -9,7 +9,8 @@
     "pg-ddl-diff": "dist/cli/diff.js",
     "pg-ddl-migrate": "dist/cli/migrate.js",
     "pg-ddl-lint": "dist/cli/lint.js",
-    "pg-ddl-watch": "dist/cli/watch.js"
+    "pg-ddl-watch": "dist/cli/watch.js",
+    "pg-ddl-docs": "dist/cli/docs.js"
   },
   "files": [
     "dist",
@@ -33,6 +34,9 @@
     "watch": "ts-node src/watch.ts",
     "watch:dev": "ts-node src/watch.ts --env dev",
     "watch:prod": "ts-node src/watch.ts --env prod",
+    "docs": "ts-node src/docs.ts",
+    "docs:dev": "ts-node src/docs.ts --env dev",
+    "docs:diagram": "ts-node src/docs.ts --env dev --diagram",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
     "format": "prettier --write \"src/**/*.ts\"",
