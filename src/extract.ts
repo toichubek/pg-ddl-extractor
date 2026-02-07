@@ -9,6 +9,7 @@ import { DataExtractor } from "./data-extractor";
 import { JsonExporter } from "./json-exporter";
 import { getSshConfig, createSshTunnel, TunnelResult } from "./tunnel";
 import { loadRcConfig, mergeWithCliOptions } from "./rc-config";
+import { SnapshotManager, getObjectHashes } from "./snapshot";
 
 // ─── Load .env ────────────────────────────────────────────────────
 dotenv.config();
@@ -32,6 +33,8 @@ interface CliOptions {
   maxRows?: string;
   // Format
   format?: string;
+  // Incremental
+  incremental?: boolean;
 }
 
 function parseArgs(): CliOptions {
@@ -56,6 +59,8 @@ function parseArgs(): CliOptions {
     .option("--max-rows <number>", "Max rows to extract per table (default: 10000)")
     // Format options
     .option("--format <format>", "Output format: sql (default) or json")
+    // Incremental
+    .option("--incremental", "Only re-extract objects that changed since last run")
     .parse(process.argv);
 
   const options = program.opts<CliOptions>();
@@ -194,6 +199,59 @@ async function main(): Promise<void> {
       if (filters.includeTables) console.log(`   Include tables:  ${filters.includeTables.join(", ")}`);
       if (filters.excludeSchemas) console.log(`   Exclude schemas: ${filters.excludeSchemas.join(", ")}`);
       if (filters.excludeTables) console.log(`   Exclude tables:  ${filters.excludeTables.join(", ")}`);
+    }
+
+    // Incremental snapshot check
+    if (options.incremental) {
+      const snapshot = new SnapshotManager(outputDir);
+      const lastTs = snapshot.getLastTimestamp();
+      if (lastTs) {
+        console.log(`\n📸 Incremental mode: last snapshot ${lastTs}`);
+      } else {
+        console.log("\n📸 Incremental mode: no previous snapshot (full extraction)");
+      }
+
+      const currentHashes = await getObjectHashes(client);
+      const changes = snapshot.getChangeSummary(currentHashes);
+
+      if (changes.added.length === 0 && changes.modified.length === 0 && changes.removed.length === 0) {
+        console.log("  🎉 No changes detected since last snapshot!\n");
+        snapshot.save(pgConfig.database || "unknown", currentHashes);
+        return;
+      }
+
+      console.log(`  🆕 Added:     ${changes.added.length}`);
+      console.log(`  🔄 Modified:  ${changes.modified.length}`);
+      console.log(`  🗑️  Removed:   ${changes.removed.length}`);
+      console.log(`  ✅ Unchanged: ${changes.unchanged.length}`);
+
+      // Do full extraction (writer handles change detection at file level)
+      // but save the snapshot after
+      const format = options.format || "sql";
+      if (format === "json") {
+        const jsonExporter = new JsonExporter(client, filters);
+        const filepath = await jsonExporter.exportToFile(outputDir);
+        console.log(`\n  📁 ${filepath}`);
+      } else {
+        const writer = new SqlFileWriter(outputDir);
+        const extractor = new DdlExtractor(client, writer, filters);
+        await extractor.extractAll();
+
+        const summary = writer.getSummary();
+        const total = Object.values(summary).reduce((a, b) => a + b, 0);
+        const stats = writer.getChangeStats();
+
+        console.log("\n═══════════════════════════════════════════════════");
+        console.log(`  ✅ Incremental extraction: ${total} objects`);
+        console.log("═══════════════════════════════════════════════════");
+        console.log(`    🆕 Created:   ${stats.created}`);
+        console.log(`    🔄 Updated:   ${stats.updated}`);
+        console.log(`    ✅ Unchanged: ${stats.unchanged}`);
+      }
+
+      snapshot.save(pgConfig.database || "unknown", currentHashes);
+      console.log("  📸 Snapshot saved\n");
+      return;
     }
 
     const format = options.format || "sql";

@@ -221,6 +221,7 @@ All commands support CLI flags to override environment variables:
 - `--with-data <tables>` - Extract data as INSERT statements from specified tables (comma-separated)
 - `--max-rows <number>` - Max rows to extract per table - default: `10000`
 - `--format <format>` - Output format: `sql` (default) or `json`
+- `--incremental` - Only re-extract objects that changed since last run
 - `--help` - Display help
 - `--version` - Display version
 
@@ -290,6 +291,9 @@ pg-ddl-extract --env dev --format json
 
 # JSON export with filters
 pg-ddl-extract --env dev --format json --schema public
+
+# Incremental extraction (only re-extract changed objects)
+pg-ddl-extract --env dev --incremental
 
 # Compare DEV vs PROD
 pg-ddl-diff
