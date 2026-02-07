@@ -1,28 +1,16 @@
 import * as path from "path";
-import * as dotenv from "dotenv";
 const pkg = require("../package.json");
-import { Client } from "pg";
 import { program } from "commander";
-import { getDbConfig } from "./config";
 import { SqlFileWriter } from "./writer";
-import { DdlExtractor, ExtractionFilters } from "./extractor";
+import { DdlExtractor } from "./extractor";
 import { DataExtractor } from "./data-extractor";
 import { JsonExporter } from "./json-exporter";
-import { getSshConfig, createSshTunnel, TunnelResult } from "./tunnel";
 import { loadRcConfig, mergeWithCliOptions } from "./rc-config";
 import { SnapshotManager, getObjectHashes } from "./snapshot";
-
-// ─── Load .env ────────────────────────────────────────────────────
-dotenv.config();
+import { DbCliOptions, DbConnection, connectToDatabase, closeConnection, handleError } from "./cli-utils";
 
 // ─── Parse CLI args ───────────────────────────────────────────────
-interface CliOptions {
-  env?: string;
-  host?: string;
-  port?: string;
-  database?: string;
-  user?: string;
-  password?: string;
+interface CliOptions extends DbCliOptions {
   output?: string;
   // Selective extraction filters
   schema?: string;
@@ -104,79 +92,12 @@ async function main(): Promise<void> {
   console.log(`  Output:      ${outputDir}`);
   console.log("═══════════════════════════════════════════════════");
 
-  // Check if SSH tunnel is needed
-  const sshConfig = getSshConfig(env);
-  let tunnel: TunnelResult | null = null;
-
-  // Get DB config - use CLI options if provided, otherwise use env-based config
-  let pgConfig =
-    options.host || options.database || options.user
-      ? {
-          host: options.host || "localhost",
-          port: options.port ? parseInt(options.port, 10) : 5432,
-          database: options.database!,
-          user: options.user!,
-          password: options.password || "",
-          connectionTimeoutMillis: 10000,
-          query_timeout: 30000,
-        }
-      : getDbConfig(env);
-
-  // Validate required fields if using CLI options
-  if (options.host || options.database || options.user) {
-    if (!options.database || !options.user) {
-      console.error("❌ When using CLI flags, --database and --user are required");
-      process.exit(1);
-    }
-
-    // Validate port number
-    if (options.port) {
-      const port = parseInt(options.port, 10);
-      if (isNaN(port) || port < 1 || port > 65535) {
-        console.error(
-          `❌ Invalid port number: "${options.port}". Port must be between 1 and 65535`
-        );
-        process.exit(1);
-      }
-    }
-  }
-
-  if (sshConfig) {
-    console.log(`\n🔒 SSH tunnel: ${sshConfig.sshUser}@${sshConfig.sshHost}:${sshConfig.sshPort}`);
-    console.log(`   Remote DB:  ${sshConfig.remoteHost}:${sshConfig.remotePort}`);
-
-    try {
-      tunnel = await createSshTunnel(sshConfig);
-      console.log(`   Local port: 127.0.0.1:${tunnel.localPort}`);
-
-      // Override pg config to connect through tunnel
-      pgConfig = {
-        ...pgConfig,
-        host: "127.0.0.1",
-        port: tunnel.localPort,
-      };
-    } catch (err: any) {
-      console.error(`\n❌ SSH tunnel failed: ${err.message}`);
-      if (err.message.includes("Authentication")) {
-        console.error("   → Check SSH_USER, SSH_PASSWORD or SSH_KEY_PATH in .env");
-      }
-      if (err.message.includes("ECONNREFUSED")) {
-        console.error("   → SSH server not reachable");
-      }
-      process.exit(1);
-    }
-  }
-
-  console.log(`\n🔌 Connecting to ${pgConfig.host}:${pgConfig.port}/${pgConfig.database}...`);
-
-  const client = new Client(pgConfig);
-
+  let conn: DbConnection | undefined;
   try {
-    await client.connect();
-    console.log("✅ Connected\n");
+    conn = await connectToDatabase(options);
 
     // Get db version for info
-    const { rows } = await client.query("SELECT version();");
+    const { rows } = await conn.client.query("SELECT version();");
     console.log(`  DB: ${rows[0].version.split(",")[0]}\n`);
 
     // Prepare extraction filters
@@ -210,12 +131,12 @@ async function main(): Promise<void> {
         console.log("\n📸 Incremental mode: no previous snapshot (full extraction)");
       }
 
-      const currentHashes = await getObjectHashes(client);
+      const currentHashes = await getObjectHashes(conn.client);
       const changes = snapshot.getChangeSummary(currentHashes);
 
       if (changes.added.length === 0 && changes.modified.length === 0 && changes.removed.length === 0) {
         console.log("  🎉 No changes detected since last snapshot!\n");
-        snapshot.save(pgConfig.database || "unknown", currentHashes);
+        snapshot.save((conn.config.database as string) || "unknown", currentHashes);
         return;
       }
 
@@ -228,12 +149,12 @@ async function main(): Promise<void> {
       // but save the snapshot after
       const format = options.format || "sql";
       if (format === "json") {
-        const jsonExporter = new JsonExporter(client, filters);
+        const jsonExporter = new JsonExporter(conn.client, filters);
         const filepath = await jsonExporter.exportToFile(outputDir);
         console.log(`\n  📁 ${filepath}`);
       } else {
         const writer = new SqlFileWriter(outputDir);
-        const extractor = new DdlExtractor(client, writer, filters);
+        const extractor = new DdlExtractor(conn.client, writer, filters);
         await extractor.extractAll();
 
         const summary = writer.getSummary();
@@ -248,7 +169,7 @@ async function main(): Promise<void> {
         console.log(`    ✅ Unchanged: ${stats.unchanged}`);
       }
 
-      snapshot.save(pgConfig.database || "unknown", currentHashes);
+      snapshot.save((conn.config.database as string) || "unknown", currentHashes);
       console.log("  📸 Snapshot saved\n");
       return;
     }
@@ -257,7 +178,7 @@ async function main(): Promise<void> {
 
     if (format === "json") {
       // JSON export mode
-      const jsonExporter = new JsonExporter(client, filters);
+      const jsonExporter = new JsonExporter(conn.client, filters);
       const filepath = await jsonExporter.exportToFile(outputDir);
 
       console.log("\n═══════════════════════════════════════════════════");
@@ -267,7 +188,7 @@ async function main(): Promise<void> {
     } else {
       // SQL export mode (default)
       const writer = new SqlFileWriter(outputDir);
-      const extractor = new DdlExtractor(client, writer, filters, !!options.progress);
+      const extractor = new DdlExtractor(conn.client, writer, filters, !!options.progress);
       await extractor.extractAll();
 
       // Extract data if requested
@@ -278,7 +199,7 @@ async function main(): Promise<void> {
           console.error(`❌ Invalid --max-rows: "${options.maxRows}". Must be between 1 and 1,000,000`);
           process.exit(1);
         }
-        const dataExtractor = new DataExtractor(client);
+        const dataExtractor = new DataExtractor(conn.client);
         await dataExtractor.extractData({
           tables: dataTables,
           maxRows,
@@ -308,24 +229,10 @@ async function main(): Promise<void> {
       }
     }
   } catch (err: any) {
-    console.error(`\n❌ Error: ${err.message}`);
-    if (err.code === "ECONNREFUSED") {
-      console.error("   → Check that the database server is running");
-    }
-    if (err.code === "28P01") {
-      console.error("   → Invalid username or password");
-    }
-    if (err.code === "3D000") {
-      console.error("   → Database does not exist");
-    }
+    handleError(err);
     process.exit(1);
   } finally {
-    await client.end();
-    // Close SSH tunnel if it was opened
-    if (tunnel) {
-      await tunnel.close();
-      console.log("🔒 SSH tunnel closed");
-    }
+    if (conn) await closeConnection(conn);
   }
 }
 

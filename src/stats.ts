@@ -1,22 +1,8 @@
-import * as dotenv from "dotenv";
-import { Client } from "pg";
 import { program } from "commander";
 const pkg = require("../package.json");
-import { getDbConfig } from "./config";
-import { getSshConfig, createSshTunnel, TunnelResult } from "./tunnel";
+import { DbCliOptions, runWithConnection } from "./cli-utils";
 
-dotenv.config();
-
-interface CliOptions {
-  env?: string;
-  host?: string;
-  port?: string;
-  database?: string;
-  user?: string;
-  password?: string;
-}
-
-function parseArgs(): CliOptions {
+function parseArgs(): DbCliOptions {
   program
     .name("pg-ddl-stats")
     .description("Show PostgreSQL database statistics and health overview")
@@ -29,44 +15,14 @@ function parseArgs(): CliOptions {
     .option("--password <password>", "Database password")
     .parse(process.argv);
 
-  return program.opts<CliOptions>();
+  return program.opts<DbCliOptions>();
 }
 
 async function main(): Promise<void> {
   const options = parseArgs();
   const env = options.env || "dev";
 
-  const sshConfig = getSshConfig(env);
-  let tunnel: TunnelResult | null = null;
-
-  let pgConfig =
-    options.host || options.database || options.user
-      ? {
-          host: options.host || "localhost",
-          port: options.port ? parseInt(options.port, 10) : 5432,
-          database: options.database!,
-          user: options.user!,
-          password: options.password || "",
-          connectionTimeoutMillis: 10000,
-          query_timeout: 30000,
-        }
-      : getDbConfig(env);
-
-  if (sshConfig) {
-    try {
-      tunnel = await createSshTunnel(sshConfig);
-      pgConfig = { ...pgConfig, host: "127.0.0.1", port: tunnel.localPort };
-    } catch (err: any) {
-      console.error(`❌ SSH tunnel failed: ${err.message}`);
-      process.exit(1);
-    }
-  }
-
-  const client = new Client(pgConfig);
-
-  try {
-    await client.connect();
-
+  await runWithConnection(options, async (client) => {
     const { rows: vr } = await client.query("SELECT version();");
     const dbVersion = vr[0].version.split(",")[0];
 
@@ -200,13 +156,7 @@ async function main(): Promise<void> {
 
     console.log("");
     console.log("═══════════════════════════════════════════════════════════");
-  } catch (err: any) {
-    console.error(`\n❌ Error: ${err.message}`);
-    process.exit(1);
-  } finally {
-    await client.end();
-    if (tunnel) await tunnel.close();
-  }
+  });
 }
 
 main();

@@ -35,13 +35,9 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
-const dotenv = __importStar(require("dotenv"));
-const pg_1 = require("pg");
 const commander_1 = require("commander");
 const pkg = require("../package.json");
-const config_1 = require("./config");
-const tunnel_1 = require("./tunnel");
-dotenv.config();
+const cli_utils_1 = require("./cli-utils");
 /**
  * Validate that extracted SQL files match the live database.
  */
@@ -270,32 +266,7 @@ function parseArgs() {
 async function main() {
     const options = parseArgs();
     const env = options.env || "dev";
-    const sshConfig = (0, tunnel_1.getSshConfig)(env);
-    let tunnel = null;
-    let pgConfig = options.host || options.database || options.user
-        ? {
-            host: options.host || "localhost",
-            port: options.port ? parseInt(options.port, 10) : 5432,
-            database: options.database,
-            user: options.user,
-            password: options.password || "",
-            connectionTimeoutMillis: 10000,
-            query_timeout: 30000,
-        }
-        : (0, config_1.getDbConfig)(env);
-    if (sshConfig) {
-        try {
-            tunnel = await (0, tunnel_1.createSshTunnel)(sshConfig);
-            pgConfig = { ...pgConfig, host: "127.0.0.1", port: tunnel.localPort };
-        }
-        catch (err) {
-            console.error(`❌ SSH tunnel failed: ${err.message}`);
-            process.exit(1);
-        }
-    }
-    const client = new pg_1.Client(pgConfig);
-    try {
-        await client.connect();
+    await (0, cli_utils_1.runWithConnection)(options, async (client) => {
         let results = [];
         // Convention checks (always run)
         results = results.concat(await validateConventions(client));
@@ -315,15 +286,6 @@ async function main() {
             }
         }
         printValidationReport(results, !!options.strict);
-    }
-    catch (err) {
-        console.error(`\n❌ Error: ${err.message}`);
-        process.exit(1);
-    }
-    finally {
-        await client.end();
-        if (tunnel)
-            await tunnel.close();
-    }
+    });
 }
 main();

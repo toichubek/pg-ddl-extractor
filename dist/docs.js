@@ -35,15 +35,10 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
-const dotenv = __importStar(require("dotenv"));
-const pg_1 = require("pg");
 const commander_1 = require("commander");
 const pkg = require("../package.json");
-const config_1 = require("./config");
 const docs_generator_1 = require("./docs-generator");
-const tunnel_1 = require("./tunnel");
-// ─── Load .env ────────────────────────────────────────────────────
-dotenv.config();
+const cli_utils_1 = require("./cli-utils");
 function parseArgs() {
     commander_1.program
         .name("pg-ddl-docs")
@@ -69,40 +64,7 @@ async function main() {
     console.log(`  PostgreSQL Schema Documentation Generator`);
     console.log(`  Environment: ${env.toUpperCase()}`);
     console.log("═══════════════════════════════════════════════════════════");
-    const sshConfig = (0, tunnel_1.getSshConfig)(env);
-    let tunnel = null;
-    let pgConfig = options.host || options.database || options.user
-        ? {
-            host: options.host || "localhost",
-            port: options.port ? parseInt(options.port, 10) : 5432,
-            database: options.database,
-            user: options.user,
-            password: options.password || "",
-            connectionTimeoutMillis: 10000,
-            query_timeout: 30000,
-        }
-        : (0, config_1.getDbConfig)(env);
-    if (options.host || options.database || options.user) {
-        if (!options.database || !options.user) {
-            console.error("❌ When using CLI flags, --database and --user are required");
-            process.exit(1);
-        }
-    }
-    if (sshConfig) {
-        try {
-            tunnel = await (0, tunnel_1.createSshTunnel)(sshConfig);
-            pgConfig = { ...pgConfig, host: "127.0.0.1", port: tunnel.localPort };
-        }
-        catch (err) {
-            console.error(`\n❌ SSH tunnel failed: ${err.message}`);
-            process.exit(1);
-        }
-    }
-    console.log(`\n🔌 Connecting to ${pgConfig.host}:${pgConfig.port}/${pgConfig.database}...`);
-    const client = new pg_1.Client(pgConfig);
-    try {
-        await client.connect();
-        console.log("✅ Connected\n");
+    await (0, cli_utils_1.runWithConnection)(options, async (client) => {
         console.log("📝 Generating documentation...\n");
         const generator = new docs_generator_1.DocsGenerator(client);
         const doc = await generator.generate();
@@ -143,16 +105,6 @@ async function main() {
         console.log(`  Views:     ${totalViews}`);
         console.log(`  Functions: ${totalFunctions}`);
         console.log("═══════════════════════════════════════════════════════════");
-    }
-    catch (err) {
-        console.error(`\n❌ Error: ${err.message}`);
-        process.exit(1);
-    }
-    finally {
-        await client.end();
-        if (tunnel) {
-            await tunnel.close();
-        }
-    }
+    });
 }
 main();

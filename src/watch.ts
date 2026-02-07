@@ -1,24 +1,13 @@
 import * as path from "path";
-import * as dotenv from "dotenv";
 import { Client } from "pg";
 import { program } from "commander";
 const pkg = require("../package.json");
-import { getDbConfig } from "./config";
 import { SqlFileWriter } from "./writer";
-import { DdlExtractor, ExtractionFilters } from "./extractor";
-import { getSshConfig, createSshTunnel, TunnelResult } from "./tunnel";
-
-// ─── Load .env ────────────────────────────────────────────────────
-dotenv.config();
+import { DdlExtractor } from "./extractor";
+import { DbCliOptions, DbConnection, connectToDatabase, closeConnection } from "./cli-utils";
 
 // ─── Parse CLI args ───────────────────────────────────────────────
-interface CliOptions {
-  env?: string;
-  host?: string;
-  port?: string;
-  database?: string;
-  user?: string;
-  password?: string;
+interface CliOptions extends DbCliOptions {
   output?: string;
   interval?: string;
 }
@@ -44,11 +33,9 @@ function parseArgs(): CliOptions {
 // ─── Schema Hash ──────────────────────────────────────────────────
 
 async function getSchemaHash(client: Client): Promise<string> {
-  // Get a combined hash of all DDL-relevant objects
   const { rows } = await client.query(`
     SELECT md5(string_agg(obj_def, '|' ORDER BY obj_type, obj_name)) AS schema_hash
     FROM (
-      -- Tables
       SELECT 'table' AS obj_type,
              n.nspname || '.' || c.relname AS obj_name,
              md5(
@@ -68,7 +55,6 @@ async function getSchemaHash(client: Client): Promise<string> {
 
       UNION ALL
 
-      -- Functions
       SELECT 'function' AS obj_type,
              n.nspname || '.' || p.proname AS obj_name,
              md5(pg_get_functiondef(p.oid)) AS obj_def
@@ -78,7 +64,6 @@ async function getSchemaHash(client: Client): Promise<string> {
 
       UNION ALL
 
-      -- Views
       SELECT 'view' AS obj_type,
              schemaname || '.' || viewname AS obj_name,
              md5(definition) AS obj_def
@@ -87,7 +72,6 @@ async function getSchemaHash(client: Client): Promise<string> {
 
       UNION ALL
 
-      -- Indexes
       SELECT 'index' AS obj_type,
              schemaname || '.' || indexname AS obj_name,
              md5(indexdef) AS obj_def
@@ -96,7 +80,6 @@ async function getSchemaHash(client: Client): Promise<string> {
 
       UNION ALL
 
-      -- Triggers
       SELECT 'trigger' AS obj_type,
              trigger_schema || '.' || trigger_name AS obj_name,
              md5(action_statement) AS obj_def
@@ -132,55 +115,22 @@ async function main(): Promise<void> {
   console.log(`  Output:      ${outputDir}`);
   console.log("═══════════════════════════════════════════════════════════");
 
-  // Check SSH tunnel
-  const sshConfig = getSshConfig(env);
-  let tunnel: TunnelResult | null = null;
-
-  let pgConfig =
-    options.host || options.database || options.user
-      ? {
-          host: options.host || "localhost",
-          port: options.port ? parseInt(options.port, 10) : 5432,
-          database: options.database!,
-          user: options.user!,
-          password: options.password || "",
-          connectionTimeoutMillis: 10000,
-          query_timeout: 30000,
-        }
-      : getDbConfig(env);
-
-  if (options.host || options.database || options.user) {
-    if (!options.database || !options.user) {
-      console.error("❌ When using CLI flags, --database and --user are required");
-      process.exit(1);
-    }
+  let conn: DbConnection;
+  try {
+    conn = await connectToDatabase(options);
+  } catch (err: any) {
+    console.error(`\n❌ Connection failed: ${err.message}`);
+    process.exit(1);
+    return;
   }
-
-  if (sshConfig) {
-    try {
-      tunnel = await createSshTunnel(sshConfig);
-      pgConfig = { ...pgConfig, host: "127.0.0.1", port: tunnel.localPort };
-    } catch (err: any) {
-      console.error(`\n❌ SSH tunnel failed: ${err.message}`);
-      process.exit(1);
-    }
-  }
-
-  console.log(`\n🔌 Connecting to ${pgConfig.host}:${pgConfig.port}/${pgConfig.database}...`);
-
-  const client = new Client(pgConfig);
 
   try {
-    await client.connect();
-    console.log("✅ Connected\n");
-
-    // Initial extraction
     let lastHash = "";
     let checkCount = 0;
 
     const doExtract = async (): Promise<void> => {
       const writer = new SqlFileWriter(outputDir);
-      const extractor = new DdlExtractor(client, writer);
+      const extractor = new DdlExtractor(conn.client, writer);
       await extractor.extractAll();
 
       const stats = writer.getChangeStats();
@@ -194,14 +144,14 @@ async function main(): Promise<void> {
 
     console.log("  📦 Initial extraction...");
     await doExtract();
-    lastHash = await getSchemaHash(client);
+    lastHash = await getSchemaHash(conn.client);
     console.log(`\n  👀 Watching for changes (every ${intervalSec}s)... Press Ctrl+C to stop\n`);
 
     // Polling loop
     const poll = async (): Promise<void> => {
       try {
         checkCount++;
-        const currentHash = await getSchemaHash(client);
+        const currentHash = await getSchemaHash(conn.client);
 
         if (currentHash !== lastHash) {
           const time = new Date().toISOString().slice(11, 19);
@@ -209,7 +159,6 @@ async function main(): Promise<void> {
           await doExtract();
           lastHash = currentHash;
         } else if (checkCount % 10 === 0) {
-          // Periodic heartbeat
           const time = new Date().toISOString().slice(11, 19);
           console.log(`  💤 [${time}] No changes (${checkCount} checks)`);
         }
@@ -220,15 +169,11 @@ async function main(): Promise<void> {
 
     const intervalId = setInterval(poll, intervalSec * 1000);
 
-    // Handle graceful shutdown
+    // Graceful shutdown
     const cleanup = async (): Promise<void> => {
       console.log("\n\n  🛑 Stopping watch mode...");
       clearInterval(intervalId);
-      await client.end();
-      if (tunnel) {
-        await tunnel.close();
-        console.log("  🔒 SSH tunnel closed");
-      }
+      await closeConnection(conn);
       console.log("  👋 Done!\n");
       process.exit(0);
     };
@@ -237,8 +182,7 @@ async function main(): Promise<void> {
     process.on("SIGTERM", cleanup);
   } catch (err: any) {
     console.error(`\n❌ Error: ${err.message}`);
-    await client.end();
-    if (tunnel) await tunnel.close();
+    await closeConnection(conn);
     process.exit(1);
   }
 }

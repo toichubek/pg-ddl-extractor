@@ -35,17 +35,12 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
-const dotenv = __importStar(require("dotenv"));
 const commander_1 = require("commander");
-const pg_1 = require("pg");
 const pkg = require("../package.json");
-const config_1 = require("./config");
-const tunnel_1 = require("./tunnel");
 const migration_generator_1 = require("./migration-generator");
 const pre_check_1 = require("./pre-check");
 const migration_tracker_1 = require("./migration-tracker");
-// ─── Load .env ────────────────────────────────────────────────────
-dotenv.config();
+const cli_utils_1 = require("./cli-utils");
 function parseArgs() {
     commander_1.program
         .name("pg-ddl-migrate")
@@ -61,7 +56,7 @@ function parseArgs() {
         .option("--pre-check", "Run database health checks before generating migration")
         .option("--history", "Show migration history from the database")
         .option("--track", "Record migration in schema_migrations table after generating")
-        .option("--env <environment>", "Environment for pre-check connection", "dev")
+        .option("--env <environment>", "Environment for pre-check connection (e.g. dev, stage, prod)", "dev")
         .option("--host <host>", "Database host for pre-check")
         .option("--port <port>", "Database port for pre-check")
         .option("--database <database>", "Database name for pre-check")
@@ -95,72 +90,34 @@ async function main() {
         console.error("❌ sql/prod/ not found. Run: npm run extract:prod");
         process.exit(1);
     }
-    // Helper to get DB connection config
-    function getConnectionConfig() {
-        return options.host || options.database || options.user
-            ? {
-                host: options.host || "localhost",
-                port: options.port ? parseInt(options.port, 10) : 5432,
-                database: options.database,
-                user: options.user,
-                password: options.password || "",
-                connectionTimeoutMillis: 10000,
-                query_timeout: 30000,
-            }
-            : (0, config_1.getDbConfig)(options.env || "dev");
-    }
     try {
         // Show migration history
         if (options.history) {
-            const pgConfig = getConnectionConfig();
-            const sshConfig = (0, tunnel_1.getSshConfig)(options.env || "dev");
-            let tunnel = null;
-            let finalConfig = pgConfig;
-            if (sshConfig) {
-                tunnel = await (0, tunnel_1.createSshTunnel)(sshConfig);
-                finalConfig = { ...pgConfig, host: "127.0.0.1", port: tunnel.localPort };
-            }
-            const client = new pg_1.Client(finalConfig);
-            try {
-                await client.connect();
+            await (0, cli_utils_1.runWithConnection)(options, async (client) => {
                 const tracker = new migration_tracker_1.MigrationTracker(client);
                 await tracker.printHistory();
-            }
-            finally {
-                await client.end();
-                if (tunnel)
-                    await tunnel.close();
-            }
+            });
             return;
         }
         // Run pre-migration checks if requested
         if (options.preCheck) {
-            const pgConfig = getConnectionConfig();
-            const sshConfig = (0, tunnel_1.getSshConfig)(options.env || "dev");
-            let tunnel = null;
-            let finalConfig = pgConfig;
-            if (sshConfig) {
-                tunnel = await (0, tunnel_1.createSshTunnel)(sshConfig);
-                finalConfig = { ...pgConfig, host: "127.0.0.1", port: tunnel.localPort };
-            }
-            const client = new pg_1.Client(finalConfig);
             try {
-                await client.connect();
-                const checker = new pre_check_1.PreMigrationChecker(client);
-                const result = await checker.runChecks();
-                (0, pre_check_1.printPreCheckReport)(result);
-                if (!result.passed) {
-                    console.log("  ⚠️  Pre-checks have warnings. Proceeding with migration generation...\n");
+                const conn = await (0, cli_utils_1.connectToDatabase)(options);
+                try {
+                    const checker = new pre_check_1.PreMigrationChecker(conn.client);
+                    const result = await checker.runChecks();
+                    (0, pre_check_1.printPreCheckReport)(result);
+                    if (!result.passed) {
+                        console.log("  ⚠️  Pre-checks have warnings. Proceeding with migration generation...\n");
+                    }
+                }
+                finally {
+                    await (0, cli_utils_1.closeConnection)(conn);
                 }
             }
             catch (err) {
                 console.error(`  ⚠️  Pre-check connection failed: ${err.message}`);
                 console.error("  Continuing with migration generation...\n");
-            }
-            finally {
-                await client.end();
-                if (tunnel)
-                    await tunnel.close();
             }
         }
         // Generate migration plan
@@ -184,32 +141,23 @@ async function main() {
         }
         // Track migration in database if requested
         if (options.track && migration.commands.length > 0) {
-            const pgConfig = getConnectionConfig();
-            const sshConfig = (0, tunnel_1.getSshConfig)(options.env || "dev");
-            let tunnel = null;
-            let finalConfig = pgConfig;
-            if (sshConfig) {
-                tunnel = await (0, tunnel_1.createSshTunnel)(sshConfig);
-                finalConfig = { ...pgConfig, host: "127.0.0.1", port: tunnel.localPort };
-            }
-            const client = new pg_1.Client(finalConfig);
             try {
-                await client.connect();
-                const tracker = new migration_tracker_1.MigrationTracker(client);
-                const crypto = await Promise.resolve().then(() => __importStar(require("crypto")));
-                const migrationContent = fs.readFileSync(filepath, "utf-8");
-                const checksum = crypto.createHash("md5").update(migrationContent).digest("hex");
-                const migrationName = path.basename(filepath);
-                await tracker.recordApplied(migrationName, checksum, 0);
-                console.log(`\n  📋 Recorded in schema_migrations: ${migrationName}`);
+                const conn = await (0, cli_utils_1.connectToDatabase)(options);
+                try {
+                    const tracker = new migration_tracker_1.MigrationTracker(conn.client);
+                    const crypto = await Promise.resolve().then(() => __importStar(require("crypto")));
+                    const migrationContent = fs.readFileSync(filepath, "utf-8");
+                    const checksum = crypto.createHash("md5").update(migrationContent).digest("hex");
+                    const migrationName = path.basename(filepath);
+                    await tracker.recordApplied(migrationName, checksum, 0);
+                    console.log(`\n  📋 Recorded in schema_migrations: ${migrationName}`);
+                }
+                finally {
+                    await (0, cli_utils_1.closeConnection)(conn);
+                }
             }
             catch (err) {
                 console.error(`\n  ⚠️  Could not record migration: ${err.message}`);
-            }
-            finally {
-                await client.end();
-                if (tunnel)
-                    await tunnel.close();
             }
         }
         // Print summary

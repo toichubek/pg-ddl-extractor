@@ -1,45 +1,8 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
 Object.defineProperty(exports, "__esModule", { value: true });
-const dotenv = __importStar(require("dotenv"));
-const pg_1 = require("pg");
 const commander_1 = require("commander");
 const pkg = require("../package.json");
-const config_1 = require("./config");
-const tunnel_1 = require("./tunnel");
-dotenv.config();
+const cli_utils_1 = require("./cli-utils");
 function parseArgs() {
     commander_1.program
         .name("pg-ddl-stats")
@@ -57,32 +20,7 @@ function parseArgs() {
 async function main() {
     const options = parseArgs();
     const env = options.env || "dev";
-    const sshConfig = (0, tunnel_1.getSshConfig)(env);
-    let tunnel = null;
-    let pgConfig = options.host || options.database || options.user
-        ? {
-            host: options.host || "localhost",
-            port: options.port ? parseInt(options.port, 10) : 5432,
-            database: options.database,
-            user: options.user,
-            password: options.password || "",
-            connectionTimeoutMillis: 10000,
-            query_timeout: 30000,
-        }
-        : (0, config_1.getDbConfig)(env);
-    if (sshConfig) {
-        try {
-            tunnel = await (0, tunnel_1.createSshTunnel)(sshConfig);
-            pgConfig = { ...pgConfig, host: "127.0.0.1", port: tunnel.localPort };
-        }
-        catch (err) {
-            console.error(`❌ SSH tunnel failed: ${err.message}`);
-            process.exit(1);
-        }
-    }
-    const client = new pg_1.Client(pgConfig);
-    try {
-        await client.connect();
+    await (0, cli_utils_1.runWithConnection)(options, async (client) => {
         const { rows: vr } = await client.query("SELECT version();");
         const dbVersion = vr[0].version.split(",")[0];
         console.log("═══════════════════════════════════════════════════════════");
@@ -200,15 +138,6 @@ async function main() {
         console.log(`    Cache Hit Ratio: ${hitRatio}%${parseFloat(hitRatio) < 90 ? " ⚠️  (should be > 99%)" : " ✅"}`);
         console.log("");
         console.log("═══════════════════════════════════════════════════════════");
-    }
-    catch (err) {
-        console.error(`\n❌ Error: ${err.message}`);
-        process.exit(1);
-    }
-    finally {
-        await client.end();
-        if (tunnel)
-            await tunnel.close();
-    }
+    });
 }
 main();

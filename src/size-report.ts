@@ -1,13 +1,8 @@
 import * as fs from "fs";
-import * as path from "path";
-import * as dotenv from "dotenv";
 import { Client } from "pg";
 import { program } from "commander";
 const pkg = require("../package.json");
-import { getDbConfig } from "./config";
-import { getSshConfig, createSshTunnel, TunnelResult } from "./tunnel";
-
-dotenv.config();
+import { DbCliOptions, runWithConnection } from "./cli-utils";
 
 interface TableSize {
   schema: string;
@@ -35,13 +30,7 @@ interface SizeReport {
   largestIndexes: { name: string; table: string; size: string; bytes: number }[];
 }
 
-interface CliOptions {
-  env?: string;
-  host?: string;
-  port?: string;
-  database?: string;
-  user?: string;
-  password?: string;
+interface CliOptions extends DbCliOptions {
   output?: string;
   json?: boolean;
   top?: string;
@@ -198,38 +187,8 @@ function parseArgs(): CliOptions {
 
 async function main(): Promise<void> {
   const options = parseArgs();
-  const env = options.env || "dev";
 
-  const sshConfig = getSshConfig(env);
-  let tunnel: TunnelResult | null = null;
-
-  let pgConfig =
-    options.host || options.database || options.user
-      ? {
-          host: options.host || "localhost",
-          port: options.port ? parseInt(options.port, 10) : 5432,
-          database: options.database!,
-          user: options.user!,
-          password: options.password || "",
-          connectionTimeoutMillis: 10000,
-          query_timeout: 30000,
-        }
-      : getDbConfig(env);
-
-  if (sshConfig) {
-    try {
-      tunnel = await createSshTunnel(sshConfig);
-      pgConfig = { ...pgConfig, host: "127.0.0.1", port: tunnel.localPort };
-    } catch (err: any) {
-      console.error(`❌ SSH tunnel failed: ${err.message}`);
-      process.exit(1);
-    }
-  }
-
-  const client = new Client(pgConfig);
-
-  try {
-    await client.connect();
+  await runWithConnection(options, async (client) => {
     const top = parseInt(options.top || "20", 10);
     const report = await generateSizeReport(client, top);
 
@@ -244,13 +203,7 @@ async function main(): Promise<void> {
     } else {
       printSizeReport(report);
     }
-  } catch (err: any) {
-    console.error(`\n❌ Error: ${err.message}`);
-    process.exit(1);
-  } finally {
-    await client.end();
-    if (tunnel) await tunnel.close();
-  }
+  });
 }
 
 main();

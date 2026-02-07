@@ -1,13 +1,9 @@
 import * as fs from "fs";
 import * as path from "path";
-import * as dotenv from "dotenv";
 import { Client } from "pg";
 import { program } from "commander";
 const pkg = require("../package.json");
-import { getDbConfig } from "./config";
-import { getSshConfig, createSshTunnel, TunnelResult } from "./tunnel";
-
-dotenv.config();
+import { DbCliOptions, runWithConnection } from "./cli-utils";
 
 interface ValidationResult {
   rule: string;
@@ -16,13 +12,7 @@ interface ValidationResult {
   message: string;
 }
 
-interface CliOptions {
-  env?: string;
-  host?: string;
-  port?: string;
-  database?: string;
-  user?: string;
-  password?: string;
+interface CliOptions extends DbCliOptions {
   sqlDir?: string;
   strict?: boolean;
 }
@@ -284,37 +274,7 @@ async function main(): Promise<void> {
   const options = parseArgs();
   const env = options.env || "dev";
 
-  const sshConfig = getSshConfig(env);
-  let tunnel: TunnelResult | null = null;
-
-  let pgConfig =
-    options.host || options.database || options.user
-      ? {
-          host: options.host || "localhost",
-          port: options.port ? parseInt(options.port, 10) : 5432,
-          database: options.database!,
-          user: options.user!,
-          password: options.password || "",
-          connectionTimeoutMillis: 10000,
-          query_timeout: 30000,
-        }
-      : getDbConfig(env);
-
-  if (sshConfig) {
-    try {
-      tunnel = await createSshTunnel(sshConfig);
-      pgConfig = { ...pgConfig, host: "127.0.0.1", port: tunnel.localPort };
-    } catch (err: any) {
-      console.error(`❌ SSH tunnel failed: ${err.message}`);
-      process.exit(1);
-    }
-  }
-
-  const client = new Client(pgConfig);
-
-  try {
-    await client.connect();
-
+  await runWithConnection(options, async (client) => {
     let results: ValidationResult[] = [];
 
     // Convention checks (always run)
@@ -336,13 +296,7 @@ async function main(): Promise<void> {
     }
 
     printValidationReport(results, !!options.strict);
-  } catch (err: any) {
-    console.error(`\n❌ Error: ${err.message}`);
-    process.exit(1);
-  } finally {
-    await client.end();
-    if (tunnel) await tunnel.close();
-  }
+  });
 }
 
 main();
