@@ -242,6 +242,8 @@ All commands support CLI flags to override environment variables:
 - `--dry-run` - Preview migration plan without saving files
 - `--interactive` - Review each change interactively before including
 - `--pre-check` - Run database health checks before generating migration
+- `--history` - Show migration history from the database
+- `--track` - Record migration in `schema_migrations` table after generating
 - `--help` - Display help
 - `--version` - Display version
 
@@ -315,6 +317,12 @@ pg-ddl-migrate --dry-run
 
 # Generate migration with custom SQL directory
 pg-ddl-migrate --sql-dir /custom/sql
+
+# Track migration in schema_migrations table
+pg-ddl-migrate --track --database mydb --user postgres
+
+# View migration history
+pg-ddl-migrate --history --database mydb --user postgres
 ```
 
 ### Examples with Environment Variables
