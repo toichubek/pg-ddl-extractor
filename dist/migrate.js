@@ -37,7 +37,11 @@ const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 const dotenv = __importStar(require("dotenv"));
 const commander_1 = require("commander");
+const pg_1 = require("pg");
+const config_1 = require("./config");
+const tunnel_1 = require("./tunnel");
 const migration_generator_1 = require("./migration-generator");
+const pre_check_1 = require("./pre-check");
 // ─── Load .env ────────────────────────────────────────────────────
 dotenv.config();
 function parseArgs() {
@@ -52,6 +56,13 @@ function parseArgs() {
         .option("--with-rollback", "Generate rollback script alongside migration")
         .option("--dry-run", "Preview migration plan without saving files")
         .option("--interactive", "Review each change interactively before including")
+        .option("--pre-check", "Run database health checks before generating migration")
+        .option("--env <environment>", "Environment for pre-check connection", "dev")
+        .option("--host <host>", "Database host for pre-check")
+        .option("--port <port>", "Database port for pre-check")
+        .option("--database <database>", "Database name for pre-check")
+        .option("--user <user>", "Database user for pre-check")
+        .option("--password <password>", "Database password for pre-check")
         .parse(process.argv);
     return commander_1.program.opts();
 }
@@ -81,6 +92,46 @@ async function main() {
         process.exit(1);
     }
     try {
+        // Run pre-migration checks if requested
+        if (options.preCheck) {
+            const pgConfig = options.host || options.database || options.user
+                ? {
+                    host: options.host || "localhost",
+                    port: options.port ? parseInt(options.port, 10) : 5432,
+                    database: options.database,
+                    user: options.user,
+                    password: options.password || "",
+                    connectionTimeoutMillis: 10000,
+                    query_timeout: 30000,
+                }
+                : (0, config_1.getDbConfig)(options.env || "dev");
+            const sshConfig = (0, tunnel_1.getSshConfig)(options.env || "dev");
+            let tunnel = null;
+            let finalConfig = pgConfig;
+            if (sshConfig) {
+                tunnel = await (0, tunnel_1.createSshTunnel)(sshConfig);
+                finalConfig = { ...pgConfig, host: "127.0.0.1", port: tunnel.localPort };
+            }
+            const client = new pg_1.Client(finalConfig);
+            try {
+                await client.connect();
+                const checker = new pre_check_1.PreMigrationChecker(client);
+                const result = await checker.runChecks();
+                (0, pre_check_1.printPreCheckReport)(result);
+                if (!result.passed) {
+                    console.log("  ⚠️  Pre-checks have warnings. Proceeding with migration generation...\n");
+                }
+            }
+            catch (err) {
+                console.error(`  ⚠️  Pre-check connection failed: ${err.message}`);
+                console.error("  Continuing with migration generation...\n");
+            }
+            finally {
+                await client.end();
+                if (tunnel)
+                    await tunnel.close();
+            }
+        }
         // Generate migration plan
         let migration = (0, migration_generator_1.generateMigration)(sqlRoot);
         if (options.dryRun) {

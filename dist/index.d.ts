@@ -8,5 +8,6 @@ export { SchemaLinter, printLintReport } from "./linter";
 export { DataExtractor } from "./data-extractor";
 export { DocsGenerator, formatDocsMarkdown, formatDocsMermaid } from "./docs-generator";
 export { loadRcConfig, mergeWithCliOptions } from "./rc-config";
+export { PreMigrationChecker, printPreCheckReport } from "./pre-check";
 export type { Client } from "pg";
 export type { LintResult, LintIssue, LintSeverity } from "./linter";

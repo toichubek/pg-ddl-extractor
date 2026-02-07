@@ -239,6 +239,7 @@ All commands support CLI flags to override environment variables:
 - `--with-rollback` - Generate rollback script alongside migration
 - `--dry-run` - Preview migration plan without saving files
 - `--interactive` - Review each change interactively before including
+- `--pre-check` - Run database health checks before generating migration
 - `--help` - Display help
 - `--version` - Display version
 

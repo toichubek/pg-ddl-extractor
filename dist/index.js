@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.mergeWithCliOptions = exports.loadRcConfig = exports.formatDocsMermaid = exports.formatDocsMarkdown = exports.DocsGenerator = exports.DataExtractor = exports.printLintReport = exports.SchemaLinter = exports.interactiveReview = exports.printDryRun = exports.printMigrationSummary = exports.formatRollbackSql = exports.formatMigrationSql = exports.saveRollback = exports.saveMigration = exports.generateRollback = exports.generateMigration = exports.formatMultiEnvReport = exports.formatHtmlReport = exports.formatMarkdownReport = exports.formatConsoleReport = exports.compareMultiEnv = exports.compareDdlDirs = exports.compareDdl = exports.createSshTunnel = exports.getSshConfig = exports.getDbConfig = exports.DdlExtractor = exports.SqlFileWriter = void 0;
+exports.printPreCheckReport = exports.PreMigrationChecker = exports.mergeWithCliOptions = exports.loadRcConfig = exports.formatDocsMermaid = exports.formatDocsMarkdown = exports.DocsGenerator = exports.DataExtractor = exports.printLintReport = exports.SchemaLinter = exports.interactiveReview = exports.printDryRun = exports.printMigrationSummary = exports.formatRollbackSql = exports.formatMigrationSql = exports.saveRollback = exports.saveMigration = exports.generateRollback = exports.generateMigration = exports.formatMultiEnvReport = exports.formatHtmlReport = exports.formatMarkdownReport = exports.formatConsoleReport = exports.compareMultiEnv = exports.compareDdlDirs = exports.compareDdl = exports.createSshTunnel = exports.getSshConfig = exports.getDbConfig = exports.DdlExtractor = exports.SqlFileWriter = void 0;
 // Public API exports
 var writer_1 = require("./writer");
 Object.defineProperty(exports, "SqlFileWriter", { enumerable: true, get: function () { return writer_1.SqlFileWriter; } });
@@ -41,3 +41,6 @@ Object.defineProperty(exports, "formatDocsMermaid", { enumerable: true, get: fun
 var rc_config_1 = require("./rc-config");
 Object.defineProperty(exports, "loadRcConfig", { enumerable: true, get: function () { return rc_config_1.loadRcConfig; } });
 Object.defineProperty(exports, "mergeWithCliOptions", { enumerable: true, get: function () { return rc_config_1.mergeWithCliOptions; } });
+var pre_check_1 = require("./pre-check");
+Object.defineProperty(exports, "PreMigrationChecker", { enumerable: true, get: function () { return pre_check_1.PreMigrationChecker; } });
+Object.defineProperty(exports, "printPreCheckReport", { enumerable: true, get: function () { return pre_check_1.printPreCheckReport; } });

@@ -2,6 +2,9 @@ import * as fs from "fs";
 import * as path from "path";
 import * as dotenv from "dotenv";
 import { program } from "commander";
+import { Client } from "pg";
+import { getDbConfig } from "./config";
+import { getSshConfig, createSshTunnel, TunnelResult } from "./tunnel";
 import {
   generateMigration,
   generateRollback,
@@ -11,6 +14,7 @@ import {
   printDryRun,
   interactiveReview,
 } from "./migration-generator";
+import { PreMigrationChecker, printPreCheckReport } from "./pre-check";
 
 // ─── Load .env ────────────────────────────────────────────────────
 dotenv.config();
@@ -24,6 +28,14 @@ interface CliOptions {
   withRollback?: boolean;
   dryRun?: boolean;
   interactive?: boolean;
+  preCheck?: boolean;
+  // Connection options for pre-check
+  env?: string;
+  host?: string;
+  port?: string;
+  database?: string;
+  user?: string;
+  password?: string;
 }
 
 function parseArgs(): CliOptions {
@@ -38,6 +50,13 @@ function parseArgs(): CliOptions {
     .option("--with-rollback", "Generate rollback script alongside migration")
     .option("--dry-run", "Preview migration plan without saving files")
     .option("--interactive", "Review each change interactively before including")
+    .option("--pre-check", "Run database health checks before generating migration")
+    .option("--env <environment>", "Environment for pre-check connection", "dev")
+    .option("--host <host>", "Database host for pre-check")
+    .option("--port <port>", "Database port for pre-check")
+    .option("--database <database>", "Database name for pre-check")
+    .option("--user <user>", "Database user for pre-check")
+    .option("--password <password>", "Database password for pre-check")
     .parse(process.argv);
 
   return program.opts<CliOptions>();
@@ -75,6 +94,49 @@ async function main(): Promise<void> {
   }
 
   try {
+    // Run pre-migration checks if requested
+    if (options.preCheck) {
+      const pgConfig =
+        options.host || options.database || options.user
+          ? {
+              host: options.host || "localhost",
+              port: options.port ? parseInt(options.port, 10) : 5432,
+              database: options.database!,
+              user: options.user!,
+              password: options.password || "",
+              connectionTimeoutMillis: 10000,
+              query_timeout: 30000,
+            }
+          : getDbConfig(options.env || "dev");
+
+      const sshConfig = getSshConfig(options.env || "dev");
+      let tunnel: TunnelResult | null = null;
+      let finalConfig = pgConfig;
+
+      if (sshConfig) {
+        tunnel = await createSshTunnel(sshConfig);
+        finalConfig = { ...pgConfig, host: "127.0.0.1", port: tunnel.localPort };
+      }
+
+      const client = new Client(finalConfig);
+      try {
+        await client.connect();
+        const checker = new PreMigrationChecker(client);
+        const result = await checker.runChecks();
+        printPreCheckReport(result);
+
+        if (!result.passed) {
+          console.log("  ⚠️  Pre-checks have warnings. Proceeding with migration generation...\n");
+        }
+      } catch (err: any) {
+        console.error(`  ⚠️  Pre-check connection failed: ${err.message}`);
+        console.error("  Continuing with migration generation...\n");
+      } finally {
+        await client.end();
+        if (tunnel) await tunnel.close();
+      }
+    }
+
     // Generate migration plan
     let migration = generateMigration(sqlRoot);
 
