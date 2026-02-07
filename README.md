@@ -151,6 +151,35 @@ Generated documentation includes:
 - Views and functions listing
 - Optional Mermaid ERD diagram
 
+## Schema Validation
+
+Validate schema consistency and conventions:
+
+```bash
+# Validate schema conventions
+pg-ddl-validate --env dev
+
+# Validate extracted files match live database
+pg-ddl-validate --env dev --sql-dir ./sql
+
+# Strict mode (warnings are errors)
+pg-ddl-validate --env dev --strict
+
+# Direct connection
+pg-ddl-validate --host localhost --database mydb --user postgres
+```
+
+Validation checks:
+- **no-primary-key** (error) — Tables without PRIMARY KEY
+- **wide-table** (warning) — Tables with >20 columns
+- **no-indexes** (warning) — Tables with no indexes
+- **stale-file** (warning) — Extracted files for objects no longer in DB
+- **missing-extract** (warning) — DB objects not in extracted files
+- **vague-column-name** (info) — Columns like "data", "info" with generic names
+- **nullable-fk** (info) — Nullable foreign key columns
+
+Exit code 1 on errors (or warnings in `--strict` mode) for CI/CD integration.
+
 ## Schema Dependencies
 
 Analyze foreign key dependencies and get safe table creation order:

@@ -13,7 +13,8 @@
     "pg-ddl-docs": "dist/cli/docs.js",
     "pg-ddl-stats": "dist/cli/stats.js",
     "pg-ddl-search": "dist/cli/search.js",
-    "pg-ddl-deps": "dist/cli/deps.js"
+    "pg-ddl-deps": "dist/cli/deps.js",
+    "pg-ddl-validate": "dist/cli/validate.js"
   },
   "files": [
     "dist",
