@@ -35,6 +35,8 @@ export { PreMigrationChecker, printPreCheckReport } from "./pre-check";
 export { MigrationTracker } from "./migration-tracker";
 export { SnapshotManager, getObjectHashes } from "./snapshot";
 export { ProgressBar, Spinner } from "./progress";
+export { createPool, withPoolClient, parallelQuery } from "./pool";
+export type { PoolOptions } from "./pool";
 export type { MigrationRecord } from "./migration-tracker";
 
 // Re-export types
