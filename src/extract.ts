@@ -44,7 +44,7 @@ function parseArgs(): CliOptions {
     .name("pg-ddl-extract")
     .description("Extract PostgreSQL DDL into organized folder structure")
     .version("1.0.0")
-    .option("--env <environment>", "Environment (dev or prod)", "dev")
+    .option("--env <environment>", "Environment name (e.g. dev, stage, prod)", "dev")
     .option("--host <host>", "Database host")
     .option("--port <port>", "Database port")
     .option("--database <database>", "Database name")
@@ -68,12 +68,6 @@ function parseArgs(): CliOptions {
     .parse(process.argv);
 
   const options = program.opts<CliOptions>();
-
-  // Validate env if provided
-  if (options.env && !["dev", "prod"].includes(options.env)) {
-    console.error(`❌ Invalid env: "${options.env}". Use --env dev or --env prod`);
-    process.exit(1);
-  }
 
   // Validate format if provided
   if (options.format && !["sql", "json"].includes(options.format)) {

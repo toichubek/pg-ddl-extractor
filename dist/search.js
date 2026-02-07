@@ -80,7 +80,7 @@ function parseArgs() {
         .version("1.0.0")
         .argument("<pattern>", "Search pattern (regex supported)")
         .option("--sql-dir <path>", "Path to SQL directory")
-        .option("--env <environment>", "Environment to search (dev or prod)", "dev")
+        .option("--env <environment>", "Environment to search (e.g. dev, stage, prod)", "dev")
         .option("--category <category>", "Limit search to a category (tables, functions, etc.)")
         .option("-i, --ignore-case", "Case-insensitive search")
         .parse(process.argv);

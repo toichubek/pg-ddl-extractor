@@ -216,7 +216,7 @@ function parseArgs() {
         .name("pg-ddl-deps")
         .description("Show schema dependency graph and creation order")
         .version("1.0.0")
-        .option("--env <environment>", "Environment (dev or prod)", "dev")
+        .option("--env <environment>", "Environment name (e.g. dev, stage, prod)", "dev")
         .option("--host <host>", "Database host")
         .option("--port <port>", "Database port")
         .option("--database <database>", "Database name")

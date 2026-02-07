@@ -44,7 +44,7 @@ function parseArgs() {
         .name("pg-ddl-stats")
         .description("Show PostgreSQL database statistics and health overview")
         .version("1.0.0")
-        .option("--env <environment>", "Environment (dev or prod)", "dev")
+        .option("--env <environment>", "Environment name (e.g. dev, stage, prod)", "dev")
         .option("--host <host>", "Database host")
         .option("--port <port>", "Database port")
         .option("--database <database>", "Database name")

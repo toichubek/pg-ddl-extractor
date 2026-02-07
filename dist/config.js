@@ -38,7 +38,7 @@ const dotenv = __importStar(require("dotenv"));
 // ─── Load .env ────────────────────────────────────────────────────
 dotenv.config();
 function getDbConfig(env) {
-    const prefix = env.toUpperCase(); // DEV or PROD
+    const prefix = env.toUpperCase(); // DEV, STAGE, PROD, etc.
     const host = process.env[`${prefix}_DB_HOST`];
     const port = process.env[`${prefix}_DB_PORT`];
     const database = process.env[`${prefix}_DB_NAME`];

@@ -23,7 +23,7 @@ function parseArgs(): CliOptions {
     .name("pg-ddl-lint")
     .description("Check PostgreSQL schema for common issues and best practices")
     .version("1.0.0")
-    .option("--env <environment>", "Environment (dev or prod)", "dev")
+    .option("--env <environment>", "Environment name (e.g. dev, stage, prod)", "dev")
     .option("--host <host>", "Database host")
     .option("--port <port>", "Database port")
     .option("--database <database>", "Database name")
@@ -32,11 +32,6 @@ function parseArgs(): CliOptions {
     .parse(process.argv);
 
   const options = program.opts<CliOptions>();
-
-  if (options.env && !["dev", "prod"].includes(options.env)) {
-    console.error(`❌ Invalid env: "${options.env}". Use --env dev or --env prod`);
-    process.exit(1);
-  }
 
   return options;
 }

@@ -48,7 +48,7 @@ function parseArgs() {
         .name("pg-ddl-watch")
         .description("Watch PostgreSQL schema for changes and auto-extract DDL")
         .version("1.0.0")
-        .option("--env <environment>", "Environment (dev or prod)", "dev")
+        .option("--env <environment>", "Environment name (e.g. dev, stage, prod)", "dev")
         .option("--host <host>", "Database host")
         .option("--port <port>", "Database port")
         .option("--database <database>", "Database name")

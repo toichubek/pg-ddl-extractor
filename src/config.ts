@@ -13,7 +13,7 @@ export interface DbConfig {
 }
 
 export function getDbConfig(env: string): PoolConfig {
-  const prefix = env.toUpperCase(); // DEV or PROD
+  const prefix = env.toUpperCase(); // DEV, STAGE, PROD, etc.
 
   const host = process.env[`${prefix}_DB_HOST`];
   const port = process.env[`${prefix}_DB_PORT`];
