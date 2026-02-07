@@ -238,6 +238,7 @@ All commands support CLI flags to override environment variables:
 - `--prod <path>` - Path to prod schema directory
 - `--with-rollback` - Generate rollback script alongside migration
 - `--dry-run` - Preview migration plan without saving files
+- `--interactive` - Review each change interactively before including
 - `--help` - Display help
 - `--version` - Display version
 

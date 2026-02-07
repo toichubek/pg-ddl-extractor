@@ -21,6 +21,7 @@ export {
   formatRollbackSql,
   printMigrationSummary,
   printDryRun,
+  interactiveReview,
 } from "./migration-generator";
 
 export { SchemaLinter, printLintReport } from "./linter";

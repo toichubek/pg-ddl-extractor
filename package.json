@@ -28,6 +28,7 @@
     "migrate": "ts-node src/migrate.ts",
     "migrate:rollback": "ts-node src/migrate.ts --with-rollback",
     "migrate:dry-run": "ts-node src/migrate.ts --dry-run",
+    "migrate:interactive": "ts-node src/migrate.ts --interactive",
     "schema:lint": "ts-node src/lint.ts",
     "schema:lint:dev": "ts-node src/lint.ts --env dev",
     "schema:lint:prod": "ts-node src/lint.ts --env prod",

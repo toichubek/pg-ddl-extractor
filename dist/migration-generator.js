@@ -41,8 +41,10 @@ exports.formatMigrationSql = formatMigrationSql;
 exports.saveMigration = saveMigration;
 exports.printMigrationSummary = printMigrationSummary;
 exports.printDryRun = printDryRun;
+exports.interactiveReview = interactiveReview;
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
+const readline = __importStar(require("readline"));
 const compare_1 = require("./compare");
 // ─── Priority Order (execute from low to high) ───────────────
 const CATEGORY_PRIORITY = {
@@ -512,4 +514,117 @@ function printDryRun(migration) {
     console.log("═══════════════════════════════════════════════════════════");
     console.log("  To generate the actual migration file, run without --dry-run");
     console.log("═══════════════════════════════════════════════════════════");
+}
+// ─── Interactive Review ──────────────────────────────────────────
+function askQuestion(rl, question) {
+    return new Promise((resolve) => {
+        rl.question(question, (answer) => resolve(answer.trim().toLowerCase()));
+    });
+}
+async function interactiveReview(migration) {
+    if (migration.commands.length === 0) {
+        console.log("\n  🎉 No changes to review - DEV and PROD are in sync!\n");
+        return migration;
+    }
+    const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout,
+    });
+    console.log("");
+    console.log("═══════════════════════════════════════════════════════════");
+    console.log("  Interactive Migration Review");
+    console.log("═══════════════════════════════════════════════════════════");
+    console.log(`  ${migration.commands.length} changes to review`);
+    console.log("  [y] include  [n] skip  [v] view SQL  [a] include all  [q] abort");
+    console.log("═══════════════════════════════════════════════════════════");
+    console.log("");
+    const approved = [];
+    let skipped = 0;
+    let creates = 0;
+    let drops = 0;
+    let alters = 0;
+    for (let i = 0; i < migration.commands.length; i++) {
+        const cmd = migration.commands[i];
+        const num = `[${i + 1}/${migration.commands.length}]`;
+        const action = cmd.comment.startsWith("Create")
+            ? "🟢 CREATE"
+            : cmd.comment.startsWith("Drop")
+                ? "🔴 DROP"
+                : "🔄 MODIFY";
+        console.log(`${num} ${action} [${cmd.category}] ${cmd.object}`);
+        let decided = false;
+        while (!decided) {
+            const answer = await askQuestion(rl, "  Include? (y/n/v/a/q): ");
+            switch (answer) {
+                case "y":
+                case "yes":
+                    approved.push(cmd);
+                    if (cmd.comment.startsWith("Create"))
+                        creates++;
+                    else if (cmd.comment.startsWith("Drop"))
+                        drops++;
+                    else
+                        alters++;
+                    decided = true;
+                    break;
+                case "n":
+                case "no":
+                    skipped++;
+                    console.log("  → Skipped");
+                    decided = true;
+                    break;
+                case "v":
+                case "view":
+                    console.log("  ─────────────────────────────────");
+                    const sqlLines = cmd.sql.split("\n");
+                    for (const line of sqlLines.slice(0, 20)) {
+                        console.log(`  ${line}`);
+                    }
+                    if (sqlLines.length > 20) {
+                        console.log(`  ... (${sqlLines.length - 20} more lines)`);
+                    }
+                    console.log("  ─────────────────────────────────");
+                    break;
+                case "a":
+                case "all":
+                    // Include remaining commands
+                    for (let j = i; j < migration.commands.length; j++) {
+                        approved.push(migration.commands[j]);
+                        const c = migration.commands[j];
+                        if (c.comment.startsWith("Create"))
+                            creates++;
+                        else if (c.comment.startsWith("Drop"))
+                            drops++;
+                        else
+                            alters++;
+                    }
+                    console.log(`  → Including all ${migration.commands.length - i} remaining commands`);
+                    decided = true;
+                    i = migration.commands.length; // Exit outer loop
+                    break;
+                case "q":
+                case "quit":
+                case "abort":
+                    console.log("\n  ❌ Migration aborted.\n");
+                    rl.close();
+                    process.exit(0);
+                    break;
+                default:
+                    console.log("  → Invalid option. Use: y, n, v, a, or q");
+            }
+        }
+        console.log("");
+    }
+    rl.close();
+    console.log("───────────────────────────────────────────────────────────");
+    console.log("  Review complete:");
+    console.log(`    ✅ Included: ${approved.length} commands`);
+    console.log(`    ⏭️  Skipped:  ${skipped} commands`);
+    console.log("───────────────────────────────────────────────────────────");
+    console.log("");
+    return {
+        timestamp: migration.timestamp,
+        commands: approved,
+        summary: { creates, drops, alters },
+    };
 }

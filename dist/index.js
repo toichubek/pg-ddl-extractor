@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.formatDocsMermaid = exports.formatDocsMarkdown = exports.DocsGenerator = exports.DataExtractor = exports.printLintReport = exports.SchemaLinter = exports.printDryRun = exports.printMigrationSummary = exports.formatRollbackSql = exports.formatMigrationSql = exports.saveRollback = exports.saveMigration = exports.generateRollback = exports.generateMigration = exports.formatMultiEnvReport = exports.formatHtmlReport = exports.formatMarkdownReport = exports.formatConsoleReport = exports.compareMultiEnv = exports.compareDdlDirs = exports.compareDdl = exports.createSshTunnel = exports.getSshConfig = exports.getDbConfig = exports.DdlExtractor = exports.SqlFileWriter = void 0;
+exports.formatDocsMermaid = exports.formatDocsMarkdown = exports.DocsGenerator = exports.DataExtractor = exports.printLintReport = exports.SchemaLinter = exports.interactiveReview = exports.printDryRun = exports.printMigrationSummary = exports.formatRollbackSql = exports.formatMigrationSql = exports.saveRollback = exports.saveMigration = exports.generateRollback = exports.generateMigration = exports.formatMultiEnvReport = exports.formatHtmlReport = exports.formatMarkdownReport = exports.formatConsoleReport = exports.compareMultiEnv = exports.compareDdlDirs = exports.compareDdl = exports.createSshTunnel = exports.getSshConfig = exports.getDbConfig = exports.DdlExtractor = exports.SqlFileWriter = void 0;
 // Public API exports
 var writer_1 = require("./writer");
 Object.defineProperty(exports, "SqlFileWriter", { enumerable: true, get: function () { return writer_1.SqlFileWriter; } });
@@ -28,6 +28,7 @@ Object.defineProperty(exports, "formatMigrationSql", { enumerable: true, get: fu
 Object.defineProperty(exports, "formatRollbackSql", { enumerable: true, get: function () { return migration_generator_1.formatRollbackSql; } });
 Object.defineProperty(exports, "printMigrationSummary", { enumerable: true, get: function () { return migration_generator_1.printMigrationSummary; } });
 Object.defineProperty(exports, "printDryRun", { enumerable: true, get: function () { return migration_generator_1.printDryRun; } });
+Object.defineProperty(exports, "interactiveReview", { enumerable: true, get: function () { return migration_generator_1.interactiveReview; } });
 var linter_1 = require("./linter");
 Object.defineProperty(exports, "SchemaLinter", { enumerable: true, get: function () { return linter_1.SchemaLinter; } });
 Object.defineProperty(exports, "printLintReport", { enumerable: true, get: function () { return linter_1.printLintReport; } });

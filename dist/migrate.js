@@ -51,11 +51,12 @@ function parseArgs() {
         .option("--output <path>", "Output directory for migration files")
         .option("--with-rollback", "Generate rollback script alongside migration")
         .option("--dry-run", "Preview migration plan without saving files")
+        .option("--interactive", "Review each change interactively before including")
         .parse(process.argv);
     return commander_1.program.opts();
 }
 // ─── Main ─────────────────────────────────────────────────────
-function main() {
+async function main() {
     const options = parseArgs();
     // Determine SQL root directory
     const sqlRoot = options.sqlDir
@@ -81,11 +82,15 @@ function main() {
     }
     try {
         // Generate migration plan
-        const migration = (0, migration_generator_1.generateMigration)(sqlRoot);
+        let migration = (0, migration_generator_1.generateMigration)(sqlRoot);
         if (options.dryRun) {
             // Dry-run: show what would be done without saving
             (0, migration_generator_1.printDryRun)(migration);
             return;
+        }
+        // Interactive mode: review each change
+        if (options.interactive) {
+            migration = await (0, migration_generator_1.interactiveReview)(migration);
         }
         // Save migration to file
         const filepath = (0, migration_generator_1.saveMigration)(sqlRoot, migration);

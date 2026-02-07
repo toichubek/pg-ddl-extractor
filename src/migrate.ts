@@ -9,6 +9,7 @@ import {
   saveRollback,
   printMigrationSummary,
   printDryRun,
+  interactiveReview,
 } from "./migration-generator";
 
 // ─── Load .env ────────────────────────────────────────────────────
@@ -22,6 +23,7 @@ interface CliOptions {
   output?: string;
   withRollback?: boolean;
   dryRun?: boolean;
+  interactive?: boolean;
 }
 
 function parseArgs(): CliOptions {
@@ -35,6 +37,7 @@ function parseArgs(): CliOptions {
     .option("--output <path>", "Output directory for migration files")
     .option("--with-rollback", "Generate rollback script alongside migration")
     .option("--dry-run", "Preview migration plan without saving files")
+    .option("--interactive", "Review each change interactively before including")
     .parse(process.argv);
 
   return program.opts<CliOptions>();
@@ -42,7 +45,7 @@ function parseArgs(): CliOptions {
 
 // ─── Main ─────────────────────────────────────────────────────
 
-function main(): void {
+async function main(): Promise<void> {
   const options = parseArgs();
 
   // Determine SQL root directory
@@ -73,12 +76,17 @@ function main(): void {
 
   try {
     // Generate migration plan
-    const migration = generateMigration(sqlRoot);
+    let migration = generateMigration(sqlRoot);
 
     if (options.dryRun) {
       // Dry-run: show what would be done without saving
       printDryRun(migration);
       return;
+    }
+
+    // Interactive mode: review each change
+    if (options.interactive) {
+      migration = await interactiveReview(migration);
     }
 
     // Save migration to file
