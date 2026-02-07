@@ -1,5 +1,10 @@
 # 📦 PostgreSQL DDL Extractor
 
+[![npm version](https://badge.fury.io/js/@toichubek%2Fpg-ddl-extractor.svg)](https://www.npmjs.com/package/@toichubek/pg-ddl-extractor)
+[![npm downloads](https://img.shields.io/npm/dm/@toichubek/pg-ddl-extractor.svg)](https://www.npmjs.com/package/@toichubek/pg-ddl-extractor)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Node.js Version](https://img.shields.io/node/v/@toichubek/pg-ddl-extractor.svg)](https://nodejs.org)
+
 Extracts full database structure (DDL) from PostgreSQL and organizes it into a clean folder structure for Git version control.
 
 ## 🚀 Installation
