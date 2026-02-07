@@ -55,6 +55,11 @@ function parseArgs() {
         .option("--user <user>", "Database user")
         .option("--password <password>", "Database password")
         .option("--output <path>", "Output directory path")
+        // Selective extraction options
+        .option("--schema <schemas>", "Include only specific schemas (comma-separated)")
+        .option("--tables <tables>", "Include only specific tables (comma-separated, format: schema.table)")
+        .option("--exclude-schema <schemas>", "Exclude specific schemas (comma-separated)")
+        .option("--exclude-tables <tables>", "Exclude specific tables (comma-separated, format: schema.table)")
         .parse(process.argv);
     const options = commander_1.program.opts();
     // Validate env if provided
@@ -141,9 +146,32 @@ async function main() {
         // Get db version for info
         const { rows } = await client.query("SELECT version();");
         console.log(`  DB: ${rows[0].version.split(",")[0]}\n`);
+        // Prepare extraction filters
+        const filters = {
+            includeSchemas: options.schema ? options.schema.split(",").map((s) => s.trim()) : undefined,
+            includeTables: options.tables ? options.tables.split(",").map((t) => t.trim()) : undefined,
+            excludeSchemas: options.excludeSchema
+                ? options.excludeSchema.split(",").map((s) => s.trim())
+                : undefined,
+            excludeTables: options.excludeTables
+                ? options.excludeTables.split(",").map((t) => t.trim())
+                : undefined,
+        };
+        // Log filters if any are set
+        if (filters.includeSchemas || filters.includeTables || filters.excludeSchemas || filters.excludeTables) {
+            console.log("\n🔍 Filters:");
+            if (filters.includeSchemas)
+                console.log(`   Include schemas: ${filters.includeSchemas.join(", ")}`);
+            if (filters.includeTables)
+                console.log(`   Include tables:  ${filters.includeTables.join(", ")}`);
+            if (filters.excludeSchemas)
+                console.log(`   Exclude schemas: ${filters.excludeSchemas.join(", ")}`);
+            if (filters.excludeTables)
+                console.log(`   Exclude tables:  ${filters.excludeTables.join(", ")}`);
+        }
         // Extract
         const writer = new writer_1.SqlFileWriter(outputDir);
-        const extractor = new extractor_1.DdlExtractor(client, writer);
+        const extractor = new extractor_1.DdlExtractor(client, writer, filters);
         await extractor.extractAll();
         // Summary
         const summary = writer.getSummary();

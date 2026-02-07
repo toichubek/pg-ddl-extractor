@@ -6,9 +6,11 @@ class DdlExtractor {
     client;
     writer;
     allDdl = [];
-    constructor(client, writer) {
+    filters;
+    constructor(client, writer, filters = {}) {
         this.client = client;
         this.writer = writer;
+        this.filters = filters;
     }
     /** Run full extraction */
     async extractAll() {
@@ -34,11 +36,16 @@ class DdlExtractor {
         AND nspname != 'information_schema'
       ORDER BY nspname;
     `);
+        let count = 0;
         for (const row of rows) {
+            if (!this.shouldIncludeSchema(row.schema_name)) {
+                continue;
+            }
             const ddl = `CREATE SCHEMA IF NOT EXISTS ${row.schema_name};`;
             this.save("schemas", row.schema_name, ddl);
+            count++;
         }
-        this.log("schemas", rows.length);
+        this.log("schemas", count);
     }
     // ─── CUSTOM TYPES (enum + composite) ────────────────────────────
     async extractTypes() {
@@ -55,13 +62,18 @@ class DdlExtractor {
       GROUP BY n.nspname, t.typname
       ORDER BY n.nspname, t.typname;
     `);
+        let count = 0;
         for (const row of enums) {
+            if (!this.shouldIncludeSchema(row.schema_name)) {
+                continue;
+            }
             const labels = row.labels
                 .split("||")
                 .map((l) => `    '${l}'`)
                 .join(",\n");
             const ddl = `CREATE TYPE ${row.schema_name}.${row.type_name} AS ENUM (\n${labels}\n);`;
             this.save("types", `${row.schema_name}.${row.type_name}`, ddl);
+            count++;
         }
         // Composite types
         const { rows: composites } = await this.client.query(`
@@ -83,10 +95,14 @@ class DdlExtractor {
       ORDER BY n.nspname, t.typname;
     `);
         for (const row of composites) {
+            if (!this.shouldIncludeSchema(row.schema_name)) {
+                continue;
+            }
             const ddl = `CREATE TYPE ${row.schema_name}.${row.type_name} AS (\n    ${row.attributes}\n);`;
             this.save("types", `${row.schema_name}.${row.type_name}`, ddl);
+            count++;
         }
-        this.log("types", enums.length + composites.length);
+        this.log("types", count);
     }
     // ─── SEQUENCES ──────────────────────────────────────────────────
     async extractSequences() {
@@ -103,7 +119,11 @@ class DdlExtractor {
       WHERE s.sequence_schema NOT IN ${EXCLUDED_SCHEMAS}
       ORDER BY s.sequence_schema, s.sequence_name;
     `);
+        let count = 0;
         for (const row of rows) {
+            if (!this.shouldIncludeSchema(row.schema_name)) {
+                continue;
+            }
             const cycle = row.cycle_option === "YES" ? "CYCLE" : "NO CYCLE";
             const ddl = [
                 `CREATE SEQUENCE ${row.schema_name}.${row.sequence_name}`,
@@ -114,8 +134,9 @@ class DdlExtractor {
                 `    ${cycle};`,
             ].join("\n");
             this.save("sequences", `${row.schema_name}.${row.sequence_name}`, ddl);
+            count++;
         }
-        this.log("sequences", rows.length);
+        this.log("sequences", count);
     }
     // ─── TABLES (full DDL with constraints) ─────────────────────────
     async extractTables() {
@@ -125,11 +146,16 @@ class DdlExtractor {
       WHERE schemaname NOT IN ${EXCLUDED_SCHEMAS}
       ORDER BY schemaname, tablename;
     `);
+        let count = 0;
         for (const tbl of tables) {
+            if (!this.shouldIncludeTable(tbl.schemaname, tbl.tablename)) {
+                continue;
+            }
             const ddl = await this.buildTableDdl(tbl.schemaname, tbl.tablename);
             this.save("tables", `${tbl.schemaname}.${tbl.tablename}`, ddl);
+            count++;
         }
-        this.log("tables", tables.length);
+        this.log("tables", count);
     }
     async buildTableDdl(schema, table) {
         const parts = [];
@@ -307,11 +333,16 @@ class DdlExtractor {
       WHERE schemaname NOT IN ${EXCLUDED_SCHEMAS}
       ORDER BY schemaname, viewname;
     `);
+        let count = 0;
         for (const row of rows) {
+            if (!this.shouldIncludeSchema(row.schema_name)) {
+                continue;
+            }
             const ddl = `CREATE OR REPLACE VIEW ${row.schema_name}.${row.view_name} AS\n${row.definition}`;
             this.save("views", `${row.schema_name}.${row.view_name}`, ddl);
+            count++;
         }
-        this.log("views", rows.length);
+        this.log("views", count);
     }
     // ─── MATERIALIZED VIEWS ─────────────────────────────────────────
     async extractMaterializedViews() {
@@ -324,11 +355,16 @@ class DdlExtractor {
       WHERE schemaname NOT IN ${EXCLUDED_SCHEMAS}
       ORDER BY schemaname, matviewname;
     `);
+        let count = 0;
         for (const row of rows) {
+            if (!this.shouldIncludeSchema(row.schema_name)) {
+                continue;
+            }
             const ddl = `CREATE MATERIALIZED VIEW ${row.schema_name}.${row.view_name} AS\n${row.definition}\nWITH DATA;`;
             this.save("materialized_views", `${row.schema_name}.${row.view_name}`, ddl);
+            count++;
         }
-        this.log("materialized_views", rows.length);
+        this.log("materialized_views", count);
     }
     // ─── FUNCTIONS & PROCEDURES ─────────────────────────────────────
     async extractFunctions() {
@@ -344,15 +380,20 @@ class DdlExtractor {
     `);
         // Handle overloaded functions (same name, different args)
         const nameCount = {};
+        let count = 0;
         for (const row of rows) {
+            if (!this.shouldIncludeSchema(row.schema_name)) {
+                continue;
+            }
             const baseName = `${row.schema_name}.${row.function_name}`;
             nameCount[baseName] = (nameCount[baseName] || 0) + 1;
             const suffix = nameCount[baseName] > 1 ? `_${nameCount[baseName]}` : "";
             const objectName = `${baseName}${suffix}`;
             const ddl = `${row.definition};`;
             this.save("functions", objectName, ddl);
+            count++;
         }
-        this.log("functions", rows.length);
+        this.log("functions", count);
     }
     // ─── TRIGGERS ───────────────────────────────────────────────────
     async extractTriggers() {
@@ -373,6 +414,9 @@ class DdlExtractor {
         // Group by trigger name (one trigger can fire on multiple events)
         const grouped = new Map();
         for (const row of rows) {
+            if (!this.shouldIncludeSchema(row.schema_name)) {
+                continue;
+            }
             const key = `${row.schema_name}.${row.trigger_name}`;
             if (!grouped.has(key))
                 grouped.set(key, []);
@@ -409,13 +453,48 @@ class DdlExtractor {
         )
       ORDER BY schemaname, indexname;
     `);
+        let count = 0;
         for (const row of rows) {
+            if (!this.shouldIncludeSchema(row.schema_name)) {
+                continue;
+            }
             const ddl = `${row.definition};`;
             this.save("indexes", `${row.schema_name}.${row.index_name}`, ddl);
+            count++;
         }
-        this.log("indexes", rows.length);
+        this.log("indexes", count);
     }
     // ─── Helpers ────────────────────────────────────────────────────
+    /**
+     * Check if a schema should be included based on filters
+     */
+    shouldIncludeSchema(schemaName) {
+        // If includeSchemas is specified, only include those schemas
+        if (this.filters.includeSchemas && this.filters.includeSchemas.length > 0) {
+            return this.filters.includeSchemas.includes(schemaName);
+        }
+        // If excludeSchemas is specified, exclude those schemas
+        if (this.filters.excludeSchemas && this.filters.excludeSchemas.length > 0) {
+            return !this.filters.excludeSchemas.includes(schemaName);
+        }
+        return true;
+    }
+    /**
+     * Check if a table should be included based on filters
+     */
+    shouldIncludeTable(schemaName, tableName) {
+        const fullName = `${schemaName}.${tableName}`;
+        // If includeTables is specified, only include those tables
+        if (this.filters.includeTables && this.filters.includeTables.length > 0) {
+            return this.filters.includeTables.includes(fullName);
+        }
+        // If excludeTables is specified, exclude those tables
+        if (this.filters.excludeTables && this.filters.excludeTables.length > 0) {
+            return !this.filters.excludeTables.includes(fullName);
+        }
+        // Check schema-level filters
+        return this.shouldIncludeSchema(schemaName);
+    }
     save(category, name, ddl) {
         this.writer.write(category, name, ddl);
         this.allDdl.push(`-- [${category.toUpperCase()}] ${name}\n${ddl}`);

@@ -137,6 +137,10 @@ All commands support CLI flags to override environment variables:
 - `--user <user>` - Database user (required with --host)
 - `--password <password>` - Database password
 - `--output <path>` - Custom output directory path
+- `--schema <schemas>` - Include only specific schemas (comma-separated)
+- `--tables <tables>` - Include only specific tables (comma-separated, format: schema.table)
+- `--exclude-schema <schemas>` - Exclude specific schemas (comma-separated)
+- `--exclude-tables <tables>` - Exclude specific tables (comma-separated, format: schema.table)
 - `--help` - Display help
 - `--version` - Display version
 
@@ -152,6 +156,7 @@ All commands support CLI flags to override environment variables:
 - `--sql-dir <path>` - Path to SQL directory - default: `./sql`
 - `--dev <path>` - Path to dev schema directory
 - `--prod <path>` - Path to prod schema directory
+- `--with-rollback` - Generate rollback script alongside migration
 - `--help` - Display help
 - `--version` - Display version
 
@@ -172,6 +177,21 @@ pg-ddl-extract --host localhost --database mydb --user postgres --password secre
 # Extract to custom output directory
 pg-ddl-extract --env dev --output /custom/path
 
+# Selective extraction - extract only specific schemas
+pg-ddl-extract --env dev --schema public,auth
+
+# Extract only specific tables
+pg-ddl-extract --env dev --tables public.users,public.orders,auth.sessions
+
+# Exclude specific schemas
+pg-ddl-extract --env dev --exclude-schema test,temp
+
+# Exclude specific tables
+pg-ddl-extract --env dev --exclude-tables public.logs,public.cache
+
+# Combine filters - extract public schema but exclude logs table
+pg-ddl-extract --env dev --schema public --exclude-tables public.logs
+
 # Compare DEV vs PROD
 pg-ddl-diff
 
@@ -183,6 +203,9 @@ pg-ddl-diff --dev /path/to/dev --prod /path/to/prod
 
 # Generate migration plan
 pg-ddl-migrate
+
+# Generate migration with rollback script
+pg-ddl-migrate --with-rollback
 
 # Generate migration with custom SQL directory
 pg-ddl-migrate --sql-dir /custom/sql
@@ -210,6 +233,7 @@ npm run extract:prod
 npm run diff
 npm run diff:report
 npm run migrate
+npm run migrate:rollback  # Generate migration + rollback
 ```
 
 ### Programmatic API
@@ -298,6 +322,37 @@ The generated migration file includes:
 - **Drops** - DROP ... IF EXISTS CASCADE for removed objects
 
 All commands are organized in correct dependency order.
+
+## Rollback Generation
+
+Generate rollback scripts alongside migrations for safe deployments:
+
+```bash
+# Generate both migration and rollback
+pg-ddl-migrate --with-rollback
+
+# Or with npm scripts
+npm run migrate:rollback
+```
+
+This creates two files:
+- `migrations/YYYYMMDD_HHmmss_dev_to_prod.sql` — Forward migration
+- `migrations/YYYYMMDD_HHmmss_rollback.sql` — Reverse migration
+
+The rollback script:
+- **DROPs** objects that were CREATEd by the migration
+- **RESTOREs** objects that were DROPped (from PROD DDL)
+- **REVERTs** modified objects to their PROD version
+- Wraps everything in a `BEGIN`/`COMMIT` transaction
+
+Example:
+```bash
+# Apply migration
+psql -d your_db -f sql/migrations/20260207_120000_dev_to_prod.sql
+
+# If something goes wrong — rollback!
+psql -d your_db -f sql/migrations/20260207_120000_rollback.sql
+```
 
 Example diff output:
 ```
