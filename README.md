@@ -151,6 +151,24 @@ Generated documentation includes:
 - Views and functions listing
 - Optional Mermaid ERD diagram
 
+## Size Report
+
+Detailed storage analysis by schema, table, and index:
+
+```bash
+# Show size report
+pg-ddl-size --env dev
+
+# Top 10 largest objects
+pg-ddl-size --env dev --top 10
+
+# Export as JSON
+pg-ddl-size --env dev --json --output size.json
+
+# Direct connection
+pg-ddl-size --host localhost --database mydb --user postgres
+```
+
 ## Snapshot Comparison
 
 Compare schema snapshots between Git commits or tags:
