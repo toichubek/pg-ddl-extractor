@@ -6,6 +6,7 @@ import { getDbConfig } from "./config";
 import { SqlFileWriter } from "./writer";
 import { DdlExtractor, ExtractionFilters } from "./extractor";
 import { DataExtractor } from "./data-extractor";
+import { JsonExporter } from "./json-exporter";
 import { getSshConfig, createSshTunnel, TunnelResult } from "./tunnel";
 import { loadRcConfig, mergeWithCliOptions } from "./rc-config";
 
@@ -29,6 +30,8 @@ interface CliOptions {
   // Data extraction
   withData?: string;
   maxRows?: string;
+  // Format
+  format?: string;
 }
 
 function parseArgs(): CliOptions {
@@ -51,6 +54,8 @@ function parseArgs(): CliOptions {
     // Data extraction options
     .option("--with-data <tables>", "Extract data from specified tables (comma-separated)")
     .option("--max-rows <number>", "Max rows to extract per table (default: 10000)")
+    // Format options
+    .option("--format <format>", "Output format: sql (default) or json")
     .parse(process.argv);
 
   const options = program.opts<CliOptions>();
@@ -58,6 +63,12 @@ function parseArgs(): CliOptions {
   // Validate env if provided
   if (options.env && !["dev", "prod"].includes(options.env)) {
     console.error(`❌ Invalid env: "${options.env}". Use --env dev or --env prod`);
+    process.exit(1);
+  }
+
+  // Validate format if provided
+  if (options.format && !["sql", "json"].includes(options.format)) {
+    console.error(`❌ Invalid format: "${options.format}". Use --format sql or --format json`);
     process.exit(1);
   }
 
@@ -185,42 +196,55 @@ async function main(): Promise<void> {
       if (filters.excludeTables) console.log(`   Exclude tables:  ${filters.excludeTables.join(", ")}`);
     }
 
-    // Extract DDL
-    const writer = new SqlFileWriter(outputDir);
-    const extractor = new DdlExtractor(client, writer, filters);
-    await extractor.extractAll();
+    const format = options.format || "sql";
 
-    // Extract data if requested
-    if (options.withData) {
-      const dataTables = options.withData.split(",").map((t) => t.trim());
-      const maxRows = options.maxRows ? parseInt(options.maxRows, 10) : 10000;
-      const dataExtractor = new DataExtractor(client);
-      await dataExtractor.extractData({
-        tables: dataTables,
-        maxRows,
-        outputDir,
-      });
-    }
+    if (format === "json") {
+      // JSON export mode
+      const jsonExporter = new JsonExporter(client, filters);
+      const filepath = await jsonExporter.exportToFile(outputDir);
 
-    // Summary
-    const summary = writer.getSummary();
-    const total = Object.values(summary).reduce((a, b) => a + b, 0);
-    const stats = writer.getChangeStats();
-
-    console.log("\n═══════════════════════════════════════════════════");
-    console.log(`  ✅ Done! Extracted ${total} objects into sql/${env}/`);
-    console.log("═══════════════════════════════════════════════════");
-    console.log(`\n  📁 ${outputDir}`);
-    console.log(`  📄 Full dump: sql/${env}/_full_dump.sql`);
-    console.log("\n  Change Summary:");
-    console.log(`    🆕 Created:   ${stats.created}`);
-    console.log(`    🔄 Updated:   ${stats.updated}`);
-    console.log(`    ✅ Unchanged: ${stats.unchanged}`);
-
-    if (stats.created === 0 && stats.updated === 0) {
-      console.log(`\n  🎉 No changes - database structure is unchanged!\n`);
+      console.log("\n═══════════════════════════════════════════════════");
+      console.log(`  ✅ Done! Exported schema as JSON`);
+      console.log("═══════════════════════════════════════════════════");
+      console.log(`\n  📁 ${filepath}\n`);
     } else {
-      console.log(`\n  Ready to commit to Git! 🎉\n`);
+      // SQL export mode (default)
+      const writer = new SqlFileWriter(outputDir);
+      const extractor = new DdlExtractor(client, writer, filters);
+      await extractor.extractAll();
+
+      // Extract data if requested
+      if (options.withData) {
+        const dataTables = options.withData.split(",").map((t) => t.trim());
+        const maxRows = options.maxRows ? parseInt(options.maxRows, 10) : 10000;
+        const dataExtractor = new DataExtractor(client);
+        await dataExtractor.extractData({
+          tables: dataTables,
+          maxRows,
+          outputDir,
+        });
+      }
+
+      // Summary
+      const summary = writer.getSummary();
+      const total = Object.values(summary).reduce((a, b) => a + b, 0);
+      const stats = writer.getChangeStats();
+
+      console.log("\n═══════════════════════════════════════════════════");
+      console.log(`  ✅ Done! Extracted ${total} objects into sql/${env}/`);
+      console.log("═══════════════════════════════════════════════════");
+      console.log(`\n  📁 ${outputDir}`);
+      console.log(`  📄 Full dump: sql/${env}/_full_dump.sql`);
+      console.log("\n  Change Summary:");
+      console.log(`    🆕 Created:   ${stats.created}`);
+      console.log(`    🔄 Updated:   ${stats.updated}`);
+      console.log(`    ✅ Unchanged: ${stats.unchanged}`);
+
+      if (stats.created === 0 && stats.updated === 0) {
+        console.log(`\n  🎉 No changes - database structure is unchanged!\n`);
+      } else {
+        console.log(`\n  Ready to commit to Git! 🎉\n`);
+      }
     }
   } catch (err: any) {
     console.error(`\n❌ Error: ${err.message}`);

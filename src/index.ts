@@ -26,6 +26,8 @@ export {
 
 export { SchemaLinter, printLintReport } from "./linter";
 export { DataExtractor } from "./data-extractor";
+export { JsonExporter } from "./json-exporter";
+export type { SchemaJson } from "./json-exporter";
 export { DocsGenerator, formatDocsMarkdown, formatDocsMermaid } from "./docs-generator";
 export { loadRcConfig, mergeWithCliOptions } from "./rc-config";
 export { PreMigrationChecker, printPreCheckReport } from "./pre-check";

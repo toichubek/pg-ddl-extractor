@@ -220,6 +220,7 @@ All commands support CLI flags to override environment variables:
 - `--exclude-tables <tables>` - Exclude specific tables (comma-separated, format: schema.table)
 - `--with-data <tables>` - Extract data as INSERT statements from specified tables (comma-separated)
 - `--max-rows <number>` - Max rows to extract per table - default: `10000`
+- `--format <format>` - Output format: `sql` (default) or `json`
 - `--help` - Display help
 - `--version` - Display version
 
@@ -280,6 +281,12 @@ pg-ddl-extract --env dev --with-data countries,currencies,statuses
 
 # Extract data with row limit
 pg-ddl-extract --env dev --with-data public.users --max-rows 100
+
+# Export schema as JSON
+pg-ddl-extract --env dev --format json
+
+# JSON export with filters
+pg-ddl-extract --env dev --format json --schema public
 
 # Compare DEV vs PROD
 pg-ddl-diff
