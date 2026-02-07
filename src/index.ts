@@ -34,6 +34,7 @@ export { loadRcConfig, mergeWithCliOptions } from "./rc-config";
 export { PreMigrationChecker, printPreCheckReport } from "./pre-check";
 export { MigrationTracker } from "./migration-tracker";
 export { SnapshotManager, getObjectHashes } from "./snapshot";
+export { ProgressBar, Spinner } from "./progress";
 export type { MigrationRecord } from "./migration-tracker";
 
 // Re-export types

@@ -222,6 +222,7 @@ All commands support CLI flags to override environment variables:
 - `--max-rows <number>` - Max rows to extract per table - default: `10000`
 - `--format <format>` - Output format: `sql` (default) or `json`
 - `--incremental` - Only re-extract objects that changed since last run
+- `--progress` - Show progress bar during extraction
 - `--help` - Display help
 - `--version` - Display version
 

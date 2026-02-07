@@ -35,6 +35,8 @@ interface CliOptions {
   format?: string;
   // Incremental
   incremental?: boolean;
+  // Progress
+  progress?: boolean;
 }
 
 function parseArgs(): CliOptions {
@@ -61,6 +63,8 @@ function parseArgs(): CliOptions {
     .option("--format <format>", "Output format: sql (default) or json")
     // Incremental
     .option("--incremental", "Only re-extract objects that changed since last run")
+    // Progress
+    .option("--progress", "Show progress bar during extraction")
     .parse(process.argv);
 
   const options = program.opts<CliOptions>();
@@ -268,7 +272,7 @@ async function main(): Promise<void> {
     } else {
       // SQL export mode (default)
       const writer = new SqlFileWriter(outputDir);
-      const extractor = new DdlExtractor(client, writer, filters);
+      const extractor = new DdlExtractor(client, writer, filters, !!options.progress);
       await extractor.extractAll();
 
       // Extract data if requested
