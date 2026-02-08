@@ -28,8 +28,19 @@ echo "  --password secret \\"
 echo "  --output ./output/dev"
 echo ""
 
-# Example 3: Compare environments
-echo "Example 3: Compare dev and prod schemas"
+# Example 3: Re-running is safe (smart change detection)
+echo "Example 3: Re-running extraction (no unnecessary diffs)"
+echo "--------------------------------------------------------"
+echo "# First run: writes all files"
+echo "pg-ddl-extract --env dev"
+echo ""
+echo "# Second run: only files with actual DDL changes are rewritten"
+echo "# Timestamps (-- Extracted:) are ignored during comparison"
+echo "pg-ddl-extract --env dev    # git status stays clean if nothing changed"
+echo ""
+
+# Example 4: Compare environments
+echo "Example 4: Compare dev and prod schemas"
 echo "----------------------------------------"
 echo "# First extract both environments"
 echo "pg-ddl-extract --env dev"
@@ -42,8 +53,8 @@ echo "# Generate detailed reports"
 echo "pg-ddl-diff --report"
 echo ""
 
-# Example 4: Generate migration
-echo "Example 4: Generate migration script"
+# Example 5: Generate migration
+echo "Example 5: Generate migration script"
 echo "-------------------------------------"
 echo "# After extracting both dev and prod"
 echo "pg-ddl-migrate"
@@ -51,15 +62,15 @@ echo ""
 echo "# This creates: sql/migrations/YYYYMMDD_HHmmss_dev_to_prod.sql"
 echo ""
 
-# Example 5: Custom directories
-echo "Example 5: Using custom directories"
+# Example 6: Custom directories
+echo "Example 6: Using custom directories"
 echo "------------------------------------"
 echo "pg-ddl-extract --env dev --output /custom/path/dev"
 echo "pg-ddl-diff --dev /custom/path/dev --prod /custom/path/prod"
 echo ""
 
-# Example 6: Environment variables
-echo "Example 6: Using environment variables"
+# Example 7: Environment variables
+echo "Example 7: Using environment variables"
 echo "---------------------------------------"
 echo "export SQL_OUTPUT_DIR=/my/sql/output"
 echo "export DEV_DB_HOST=localhost"

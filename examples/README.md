@@ -84,6 +84,10 @@ extractDatabase().catch(console.error);
 # Extract current state
 pg-ddl-extract --env dev
 
+# Re-running is safe -- only files with actual DDL changes are updated
+# Timestamps are ignored, so git stays clean when nothing changed
+pg-ddl-extract --env dev   # no git diff if schema hasn't changed
+
 # Commit to git
 git add sql/
 git commit -m "chore: update database schema"
@@ -157,6 +161,7 @@ jobs:
 - Store `.env` files securely (never commit to git)
 - Use SSH tunnels for secure remote connections
 - Run extractions before each deployment to track changes
+- Safe to run repeatedly -- only actual content changes produce git diffs (timestamps are ignored)
 
 ## Need Help?
 

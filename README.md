@@ -5,7 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js Version](https://img.shields.io/node/v/@toichubek/pg-ddl-extractor.svg)](https://nodejs.org)
 
-Extracts full database structure (DDL) from PostgreSQL and organizes it into a clean folder structure for Git version control. Includes diffing, migration generation, linting, documentation, and more.
+Extracts full database structure (DDL) from PostgreSQL and organizes it into a clean folder structure for Git version control. Smart change detection ensures files are only written when actual content changes -- re-running extraction won't create noisy git diffs from timestamp-only updates. Includes diffing, migration generation, linting, documentation, and more.
 
 ## Quick Start
 
@@ -516,8 +516,13 @@ pg-ddl-diff                        # Check for drift
 
 ## Git Workflow
 
+Repeated extractions only update files when the actual DDL changes. Timestamp-only differences are ignored, so `git status` stays clean when nothing changed.
+
 ```bash
-pg-ddl-extract --env dev
+pg-ddl-extract --env dev       # First run: writes all files
+pg-ddl-extract --env dev       # Second run: no files changed, git stays clean
+
+# Only actual schema changes produce git diffs
 git add sql/
 git commit -m "chore: update database DDL snapshot"
 ```
@@ -538,6 +543,17 @@ npm run docs              # Generate docs
 npm run stats             # DB statistics
 ```
 
+## Smart Change Detection
+
+All output formats (SQL files, JSON export, data dumps) use content-aware change detection. When you re-run extraction:
+
+- Files are **only overwritten** when the actual content (DDL, data) changes
+- Embedded timestamps (`-- Extracted:`, `exportedAt`) are **ignored** during comparison
+- No unnecessary git diffs from timestamp-only updates
+- The extraction summary shows created/updated/unchanged counts
+
+This makes it safe to run extractions frequently (CI/CD, cron, watch mode) without polluting your git history.
+
 ## Tips
 
 - Run before each release to capture DB changes
@@ -547,3 +563,4 @@ npm run stats             # DB statistics
 - Add to CI/CD to auto-snapshot on deploy
 - Generate migration plan before each production deployment
 - Keep migration files in version control for audit trail
+- Safe to run repeated extractions -- only real changes create git diffs
