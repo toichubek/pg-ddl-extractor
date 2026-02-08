@@ -1,5 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
+import * as crypto from "crypto";
 import { Client } from "pg";
 
 // ─── Types ────────────────────────────────────────────────────
@@ -115,10 +116,31 @@ export class DataExtractor {
     lines.push(`ALTER TABLE ${schema}.${table} ENABLE TRIGGER ALL;`);
     lines.push("");
 
-    // Write file
+    // Write file (only if content changed, ignoring timestamp)
     const filename = `${schema}.${table}.sql`.replace(/[^\w.\-]/g, "_");
     const filepath = path.join(dataDir, filename);
-    fs.writeFileSync(filepath, lines.join("\n"), "utf-8");
+    const newContent = lines.join("\n");
+
+    if (fs.existsSync(filepath)) {
+      const existing = fs.readFileSync(filepath, "utf-8");
+      const hashOf = (s: string) =>
+        crypto
+          .createHash("md5")
+          .update(
+            s
+              .split("\n")
+              .filter((l) => !l.startsWith("-- Extracted:"))
+              .map((l) => l.trimEnd())
+              .filter((l) => l.trim() !== "")
+              .join("\n")
+          )
+          .digest("hex");
+      if (hashOf(existing) === hashOf(newContent)) {
+        return rows.length;
+      }
+    }
+
+    fs.writeFileSync(filepath, newContent, "utf-8");
 
     return rows.length;
   }

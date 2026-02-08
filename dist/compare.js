@@ -66,10 +66,11 @@ function getSqlFiles(dir) {
     return files;
 }
 function fileHash(filepath) {
-    const content = stripHeader(fs.readFileSync(filepath, "utf-8"));
-    // Normalize: trim each line, remove empty lines, so whitespace-only diffs don't count
+    const content = fs.readFileSync(filepath, "utf-8");
+    // Normalize: ignore timestamp lines, trim each line, remove empty lines
     const normalized = content
         .split("\n")
+        .filter((l) => !l.startsWith("-- Extracted:") && !l.startsWith("-- Generated:"))
         .map((l) => l.trimEnd())
         .filter((l) => l.trim() !== "")
         .join("\n");

@@ -88,7 +88,16 @@ class JsonExporter {
         const data = await this.export();
         fs.mkdirSync(outputDir, { recursive: true });
         const filepath = path.join(outputDir, "schema.json");
-        fs.writeFileSync(filepath, JSON.stringify(data, null, 2), "utf-8");
+        const newContent = JSON.stringify(data, null, 2);
+        // Only write if content changed (ignoring exportedAt timestamp)
+        if (fs.existsSync(filepath)) {
+            const existing = fs.readFileSync(filepath, "utf-8");
+            const stripTimestamp = (s) => s.replace(/"exportedAt":\s*"[^"]*"/, '"exportedAt": ""');
+            if (stripTimestamp(existing) === stripTimestamp(newContent)) {
+                return filepath;
+            }
+        }
+        fs.writeFileSync(filepath, newContent, "utf-8");
         return filepath;
     }
     shouldIncludeSchema(schemaName) {

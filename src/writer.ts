@@ -33,19 +33,11 @@ function buildHeader(objectName: string, category: string): string {
   ].join("\n");
 }
 
-/** Strip header from content to get only DDL */
-function stripHeader(content: string): string {
-  const lines = content.split("\n");
-  const start = lines.findIndex((l) => !l.startsWith("-- ") && l.trim() !== "");
-  return start >= 0 ? lines.slice(start).join("\n").trim() : content.trim();
-}
-
-/** Calculate hash of DDL content (without header) */
+/** Calculate hash of content, ignoring the Extracted timestamp line */
 function contentHash(content: string): string {
-  const ddl = stripHeader(content);
-  // Normalize: trim each line, remove empty lines
-  const normalized = ddl
+  const normalized = content
     .split("\n")
+    .filter((l) => !l.startsWith("-- Extracted:"))
     .map((l) => l.trimEnd())
     .filter((l) => l.trim() !== "")
     .join("\n");
